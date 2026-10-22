@@ -1,0 +1,72 @@
+
+/* ─── editor toolbar variants ───────────────────────────────────── */
+.editor-toolbar { background: var(--bg); }
+.editor-toolbar-2 {
+  background: var(--surface-warm);
+  border-bottom: 1px solid var(--border);
+  min-height: 46px;
+}
+.only-mobile { display: none; }
+
+/* quick toggle buttons in toolbar */
+.btn.is-on {
+  background: var(--accent-soft); border-color: transparent; color: var(--accent);
+  font-weight: 500;
+}
+.btn.is-on:hover { background: color-mix(in oklch, var(--accent) 18%, transparent); border-color: transparent; }
+
+.badge-count {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--muted); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  padding: 2px 9px;
+}
+
+/* ─── preview controls dock ─────────────────────────────────────── */
+.preview-controls {
+  background: var(--surface-warm); border-top: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-4); flex: none; flex-wrap: wrap;
+}
+.preview-controls .lbl {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--meta); margin-right: var(--space-1);
+}
+.chip {
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+  border-radius: var(--radius-pill); padding: 4px 11px;
+  font-size: var(--text-xs); font-weight: 500; display: inline-flex; align-items: center; gap: 5px;
+  transition: background var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+.chip::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border); flex: none;
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+.chip:hover { border-color: var(--meta); color: var(--fg-2); }
+.chip.is-on {
+  background: var(--accent-soft); border-color: transparent; color: var(--accent);
+}
+.chip.is-on::before { background: var(--accent); }
+
+/* ─── inline field rows ─────────────────────────────────────────── */
+.color-row { display: flex; align-items: center; gap: var(--space-2); }
+.color-row input[type="color"] {
+  width: 40px; height: 34px; padding: 3px; flex: none; cursor: pointer;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg);
+}
+.color-row .num { font-size: var(--text-xs); color: var(--muted); flex: 1; }
+.range-row { display: flex; align-items: center; gap: var(--space-3); }
+.range-row input[type="range"] { flex: 1; accent-color: var(--accent); height: 4px; }
+.range-row .num { font-size: var(--text-xs); color: var(--muted); min-width: 42px; text-align: right; }
+
+/* ─── selection count badge inside block title ──────────────────── */
+.block-title .status { text-transform: none; letter-spacing: 0; }
+
+@media (max-width: 920px) {
+  .only-mobile { display: inline-flex; }
+  .editor-toolbar-2, .layout-toolbar { display: none; }
+  .preview-controls { justify-content: center; }
+}

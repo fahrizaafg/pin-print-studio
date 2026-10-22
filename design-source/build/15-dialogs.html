@@ -1,0 +1,449 @@
+<!-- ═══ DIALOG: PROYEK BARU ═══════════════════════════════════ -->
+<div class="overlay" id="dlg-new-project" data-od-id="dlg-new-project">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="new-proj-title">
+    <div class="dialog-head">
+      <div>
+        <h2 id="new-proj-title" style="font-size:var(--text-lg)">Proyek Baru</h2>
+        <div class="dialog-sub">Mulai lembar kerja kosong dengan preset yang diinginkan.</div>
+      </div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="stack-sm">
+        <div class="field"><label for="np-name">Nama proyek</label><input class="input" type="text" id="np-name" placeholder="Contoh: Pin Wisuda 2026" /></div>
+        <div class="field"><label for="np-preset">Mulai dari</label>
+          <select class="select" id="np-preset">
+            <option>Kanvas kosong</option>
+            <option selected>Preset Grid Rapat A3</option>
+            <option>Preset Hemat A4 38mm</option>
+            <option>Duplikat proyek terakhir</option>
+          </select>
+        </div>
+        <div class="field"><label for="np-paper">Ukuran kertas</label>
+          <select class="select" id="np-paper"><option>A4</option><option selected>A3</option><option>A3+</option><option>Custom…</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Proyek baru dibuat." data-nav-go="editor" data-close>Buat Proyek</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: BUKA PROYEK ═══════════════════════════════════ -->
+<div class="overlay" id="dlg-open-project" data-od-id="dlg-open-project">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="open-proj-title">
+    <div class="dialog-head">
+      <div><h2 id="open-proj-title" style="font-size:var(--text-lg)">Buka Proyek</h2>
+        <div class="dialog-sub">Pilih dari 5 proyek tersimpan di perangkat ini.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body" style="padding:0">
+      <table class="ds-table">
+        <tbody>
+          <tr class="is-pickable"><td><strong>Layout Pin A3 — Kopi Kenangan</strong><div class="meta">A3 · 6 desain · 2 menit lalu</div></td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" data-nav-go="editor" data-close>Buka</button><button class="btn btn-ghost btn-sm" data-id="dup">Duplikat</button></td></tr>
+          <tr class="is-pickable"><td><strong>Pin Wisuda 2026 — SMAN 3</strong><div class="meta">A4 · 12 desain · Kemarin</div></td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" data-nav-go="editor" data-close>Buka</button><button class="btn btn-ghost btn-sm" data-id="dup">Duplikat</button></td></tr>
+          <tr class="is-pickable"><td><strong>Merch Kucing Oren — Toko Paws</strong><div class="meta">A3+ · 9 desain · 3 hari lalu</div></td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" data-nav-go="editor" data-close>Buka</button><button class="btn btn-ghost btn-sm" data-id="dup">Duplikat</button></td></tr>
+          <tr class="is-pickable"><td><strong>Pin Komunitas Sepeda — GowesID</strong><div class="meta">A4 · 8 desain · 5 hari lalu</div></td><td style="text-align:right;white-space:nowrap"><button class="btn btn-ghost btn-sm" data-nav-go="editor" data-close>Buka</button><button class="btn btn-ghost btn-sm" data-id="dup">Duplikat</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary foot-left" data-open-dialog="dlg-import">Impor Proyek…</button>
+      <button class="btn btn-secondary" data-close>Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: DUPLIKAT / RESET PROYEK ═══════════════════════ -->
+<div class="overlay" id="dlg-duplicate-project" data-od-id="dlg-duplicate-project">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dup-proj-title">
+    <div class="dialog-head">
+      <div><h2 id="dup-proj-title" style="font-size:var(--text-lg)">Duplikat Proyek</h2>
+        <div class="dialog-sub">Buat salinan tanpa mengubah proyek asli.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="field"><label for="dp-name">Nama salinan</label><input class="input" type="text" id="dp-name" value="Layout Pin A3 — Kopi Kenangan (salinan)" /></div>
+      <div class="switch-row mt-4"><div><div class="switch-label">Sertakan gambar</div><div class="switch-sub">Salin juga berkas gambar yang digunakan</div></div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Proyek diduplikat." data-close>Duplikat</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dlg-reset-project" data-od-id="dlg-reset-project">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="reset-proj-title">
+    <div class="dialog-head">
+      <div><h2 id="reset-proj-title" style="font-size:var(--text-lg)">Reset Proyek</h2>
+        <div class="dialog-sub">Kembalikan proyek ke kondisi awal. Tindakan ini tidak dapat dibatalkan.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="switch-row"><div><div class="switch-label">Kosongkan layout</div><div class="switch-sub">Hapus semua desain dari lembar</div></div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+      <div class="switch-row"><div><div class="switch-label">Kembalikan pengaturan kertas</div><div class="switch-sub">Kembali ke default A3 Portrait</div></div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Proyek telah direset." data-close>Reset Proyek</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: UPLOAD GAMBAR ═════════════════════════════════ -->
+<div class="overlay" id="dlg-upload" data-od-id="dlg-upload">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="upload-title">
+    <div class="dialog-head">
+      <div><h2 id="upload-title" style="font-size:var(--text-lg)">Upload Gambar</h2>
+        <div class="dialog-sub">PNG, JPG, atau SVG hingga 20 MB per berkas.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="dropzone" id="upload-drop" data-od-id="upload-dropzone">
+        <span class="empty-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20V9M7.5 13 12 8.5 16.5 13"/><path d="M5 4h14"/></svg></span>
+        <strong>Tarik berkas ke sini</strong>
+        <span class="body-muted body-sm">atau pilih berkas dari perangkat</span>
+        <button class="btn btn-secondary btn-sm" id="upload-pick" data-od-id="upload-pick">Pilih File</button>
+        <input type="file" id="upload-input" multiple accept="image/*" hidden />
+      </div>
+      <div class="stack-xs mt-4">
+        <label class="check-row is-checked"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 4.5 4.5L19 7"/></svg></span><span><span class="check-label">Hapus latar otomatis</span><span class="check-sub">Ganti latar putih dengan transparan</span></span></label>
+        <label class="check-row"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 4.5 4.5L19 7"/></svg></span><span><span class="check-label">Tambahkan langsung ke layout</span><span class="check-sub">Tempatkan otomatis setelah diunggah</span></span></label>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="2 gambar berhasil diunggah." data-close>Unggah</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: GANTI GAMBAR ══════════════════════════════════ -->
+<div class="overlay" id="dlg-replace" data-od-id="dlg-replace">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="replace-title">
+    <div class="dialog-head">
+      <div><h2 id="replace-title" style="font-size:var(--text-lg)">Ganti Gambar</h2>
+        <div class="dialog-sub">Pilih berkas pengganti. Posisi dan skala di layout dipertahankan.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="field"><label for="rp-source">Ambil dari</label>
+        <select class="select" id="rp-source"><option selected>Galeri Desain</option><option>Perangkat ini</option></select>
+      </div>
+      <div class="gallery-grid mt-4" style="grid-template-columns:repeat(3,1fr)">
+        <button class="gcard is-selected" style="padding:0;border:1px solid var(--accent)"><span class="gcard-art"><span class="pin-art art-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4v16M4 12h16"/></svg></span></span></button>
+        <button class="gcard" style="padding:0"><span class="gcard-art"><span class="pin-art art-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 15c0-5 4-7 7-7s7 2 7 7z"/></svg></span></span></button>
+        <button class="gcard" style="padding:0"><span class="gcard-art"><span class="pin-art art-yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m12 4 2.4 5 5.6.6-4.2 3.8 1.2 5.4L12 16l-5 2.8 1.2-5.4L4 9.6l5.6-.6z"/></svg></span></span></button>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Gambar berhasil diganti." data-close>Ganti Gambar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: EDIT GAMBAR ═══════════════════════════════════ -->
+<div class="overlay" id="dlg-edit-image" data-od-id="dlg-edit-image">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="edit-img-title">
+    <div class="dialog-head">
+      <div><h2 id="edit-img-title" style="font-size:var(--text-lg)">Edit Gambar</h2>
+        <div class="dialog-sub">Penyesuaian diterapkan pada semua salinan desain ini.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="grid-1-2">
+        <div class="preview-thumb"><span class="pin-art art-ink" style="width:120px;height:120px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6 9.5 12 5l6 4.5V19H6z"/></svg></span></div>
+        <div class="stack-sm">
+          <div class="field"><label for="ei-bright">Kecerahan</label><div class="range-row"><input type="range" id="ei-bright" min="-100" max="100" value="0" /><span class="num">0</span></div></div>
+          <div class="field"><label for="ei-contrast">Kontras</label><div class="range-row"><input type="range" id="ei-contrast" min="-100" max="100" value="10" /><span class="num">10</span></div></div>
+          <div class="field"><label for="ei-sat">Saturasi</label><div class="range-row"><input type="range" id="ei-sat" min="-100" max="100" value="0" /><span class="num">0</span></div></div>
+          <div class="field"><label for="ei-thresh">Buang latar (ambang)</label><div class="range-row"><input type="range" id="ei-thresh" min="0" max="100" value="0" /><span class="num">0</span></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-ghost foot-left" data-toast="Penyesuaian direset.">Reset</button>
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Penyesuaian gambar diterapkan." data-close>Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: PENGATURAN KERTAS ═════════════════════════════ -->
+<div class="overlay" id="dlg-paper" data-od-id="dlg-paper">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="paper-title">
+    <div class="dialog-head">
+      <div><h2 id="paper-title" style="font-size:var(--text-lg)">Pengaturan Kertas</h2>
+        <div class="dialog-sub">Atur ukuran, orientasi, margin, dan jarak susunan.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="grid-2">
+        <div class="field"><label for="pp-paper">Ukuran kertas</label>
+          <select class="select" id="pp-paper"><option>A4 — 210 × 297 mm</option><option selected>A3 — 297 × 420 mm</option><option>A3+ — 329 × 483 mm</option><option>Custom…</option></select>
+        </div>
+        <div class="field"><label>Orientasi</label>
+          <div class="seg" style="width:100%"><button class="is-active">Portrait</button><button>Landscape</button></div>
+        </div>
+        <div class="field"><label for="pp-dia">Diameter potong</label><div class="input-unit"><input class="input" type="number" id="pp-dia" value="58" /><span class="unit">mm</span></div></div>
+        <div class="field"><label for="pp-bleed">Bleed</label><div class="input-unit"><input class="input" type="number" id="pp-bleed" value="3" /><span class="unit">mm</span></div></div>
+        <div class="field"><label for="pp-margin">Margin</label><div class="input-unit"><input class="input" type="number" id="pp-margin" value="8" /><span class="unit">mm</span></div></div>
+        <div class="field"><label for="pp-gap">Jarak antardesain</label><div class="input-unit"><input class="input" type="number" id="pp-gap" value="4" /><span class="unit">mm</span></div></div>
+        <div class="field"><label for="pp-rows">Jumlah baris</label><input class="input" type="number" id="pp-rows" value="4" /></div>
+        <div class="field"><label for="pp-cols">Jumlah kolom</label><input class="input" type="number" id="pp-cols" value="3" /></div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-ghost foot-left" data-toast="Pengaturan kertas dikembalikan ke default.">Reset</button>
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Pengaturan kertas diterapkan." data-close>Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: SUSUN OTOMATIS ════════════════════════════════ -->
+<div class="overlay" id="dlg-auto" data-od-id="dlg-auto">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="auto-title">
+    <div class="dialog-head">
+      <div><h2 id="auto-title" style="font-size:var(--text-lg)">Susun Otomatis</h2>
+        <div class="dialog-sub">Sistem menghitung susunan paling efisien untuk semua desain.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="grid-1-2">
+        <div class="stack-sm">
+          <div class="field"><label for="au-mode">Mode susun</label>
+            <select class="select" id="au-mode"><option selected>Hemat kertas</option><option>Grid rapi</option><option>Isi lembar penuh</option></select>
+          </div>
+          <div class="field"><label for="au-pages">Jumlah halaman</label><select class="select" id="au-pages"><option selected>Otomatis</option><option>1 halaman</option><option>2 halaman</option><option>3 halaman</option></select></div>
+          <div class="switch-row"><div class="switch-label">Izinkan rotasi desain</div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+          <div class="switch-row"><div class="switch-label">Pertahankan posisi terkunci</div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+        </div>
+        <div>
+          <div class="block-title">Pratinjau Layout</div>
+          <div class="auto-preview" id="auto-preview" data-od-id="auto-preview">
+            <span class="ap-dot" style="left:8%;top:8%"></span><span class="ap-dot" style="left:38%;top:8%"></span><span class="ap-dot" style="left:68%;top:8%"></span>
+            <span class="ap-dot" style="left:8%;top:38%"></span><span class="ap-dot" style="left:38%;top:38%"></span><span class="ap-dot" style="left:68%;top:38%"></span>
+            <span class="ap-dot" style="left:8%;top:68%"></span><span class="ap-dot" style="left:38%;top:68%"></span><span class="ap-dot" style="left:68%;top:68%"></span>
+          </div>
+          <p class="field-help mt-2">9 desain per halaman · efisiensi 94%.</p>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-ghost foot-left" data-toast="Pratinjau susunan diatur ulang.">Reset</button>
+      <button class="btn btn-secondary" data-toast="Pratinjau layout diperbarui.">Pratinjau Layout</button>
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Layout otomatis diterapkan." data-close>Terapkan Layout</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: ATUR BARIS / KOLOM ════════════════════════════ -->
+<div class="overlay" id="dlg-rows" data-od-id="dlg-rows">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="rows-title">
+    <div class="dialog-head">
+      <div><h2 id="rows-title" style="font-size:var(--text-lg)">Atur Baris</h2>
+        <div class="dialog-sub">Jumlah baris menentukan berapa banyak pin tersusun ke bawah.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="field"><label for="row-count">Jumlah baris</label><input class="input" type="number" id="row-count" value="4" min="1" max="12" /></div>
+      <div class="range-row mt-4"><input type="range" min="1" max="12" value="4" /><span class="num">4</span></div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Jumlah baris diperbarui." data-close>Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dlg-cols" data-od-id="dlg-cols">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="cols-title">
+    <div class="dialog-head">
+      <div><h2 id="cols-title" style="font-size:var(--text-lg)">Atur Kolom</h2>
+        <div class="dialog-sub">Jumlah kolom menentukan berapa banyak pin tersusun ke samping.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="field"><label for="col-count">Jumlah kolom</label><input class="input" type="number" id="col-count" value="3" min="1" max="12" /></div>
+      <div class="range-row mt-4"><input type="range" min="1" max="12" value="3" /><span class="num">3</span></div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Jumlah kolom diperbarui." data-close>Terapkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: BUAT / EDIT PRESET ════════════════════════════ -->
+<div class="overlay" id="dlg-new-preset" data-od-id="dlg-new-preset">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="preset-title">
+    <div class="dialog-head">
+      <div><h2 id="preset-title" style="font-size:var(--text-lg)">Buat Preset</h2>
+        <div class="dialog-sub">Simpan kombinasi kertas, geometri, dan susunan sebagai resep layout.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="stack-sm">
+        <div class="field"><label for="pre-name">Nama preset</label><input class="input" type="text" id="pre-name" placeholder="Contoh: Grid Rapat A3 58mm" /></div>
+        <div class="grid-2">
+          <div class="field"><label for="pre-paper">Ukuran kertas</label><select class="select" id="pre-paper"><option>A4</option><option selected>A3</option><option>A3+</option></select></div>
+          <div class="field"><label for="pre-dia">Diameter</label><div class="input-unit"><input class="input" type="number" id="pre-dia" value="58" /><span class="unit">mm</span></div></div>
+          <div class="field"><label for="pre-rows">Baris</label><input class="input" type="number" id="pre-rows" value="4" /></div>
+          <div class="field"><label for="pre-cols">Kolom</label><input class="input" type="number" id="pre-cols" value="3" /></div>
+          <div class="field"><label for="pre-gap">Jarak antardesain</label><div class="input-unit"><input class="input" type="number" id="pre-gap" value="4" /><span class="unit">mm</span></div></div>
+          <div class="field"><label for="pre-margin">Margin</label><div class="input-unit"><input class="input" type="number" id="pre-margin" value="8" /><span class="unit">mm</span></div></div>
+        </div>
+        <label class="check-row is-checked"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m5 12 4.5 4.5L19 7"/></svg></span><span><span class="check-label">Jadikan preset aktif</span><span class="switch-row" style="padding:0;border:0"></span></span></label>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Preset berhasil disimpan." data-close>Simpan Preset</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="dlg-edit-preset" data-od-id="dlg-edit-preset">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="edit-preset-title">
+    <div class="dialog-head">
+      <div><h2 id="edit-preset-title" style="font-size:var(--text-lg)">Edit Preset</h2>
+        <div class="dialog-sub">Ubah resep layout yang sudah tersimpan.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="stack-sm">
+        <div class="field"><label for="ep-name">Nama preset</label><input class="input" type="text" id="ep-name" value="Grid Rapat A3" /></div>
+        <div class="grid-2">
+          <div class="field"><label for="ep-dia">Diameter</label><div class="input-unit"><input class="input" type="number" id="ep-dia" value="58" /><span class="unit">mm</span></div></div>
+          <div class="field"><label for="ep-gap">Jarak antardesain</label><div class="input-unit"><input class="input" type="number" id="ep-gap" value="4" /><span class="unit">mm</span></div></div>
+          <div class="field"><label for="ep-rows">Baris</label><input class="input" type="number" id="ep-rows" value="4" /></div>
+          <div class="field"><label for="ep-cols">Kolom</label><input class="input" type="number" id="ep-cols" value="3" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-danger foot-left" data-confirm-action data-toast="Preset dihapus." data-close>Hapus Preset</button>
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" data-confirm-action data-toast="Preset diperbarui." data-close>Simpan Perubahan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: PULIHKAN VERSI ════════════════════════════════ -->
+<div class="overlay" id="dlg-restore" data-od-id="dlg-restore">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="restore-title">
+    <div class="dialog-head">
+      <div><h2 id="restore-title" style="font-size:var(--text-lg)">Pulihkan Versi</h2>
+        <div class="dialog-sub">Pilih titik simpan otomatis untuk dikembalikan.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body" style="padding:0">
+      <table class="ds-table">
+        <tbody>
+          <tr><td><strong>Hari ini, 14:02</strong><div class="meta">6 desain · 3 halaman</div></td><td style="text-align:right"><button class="btn btn-secondary btn-sm" data-confirm-action data-toast="Versi 14:02 dipulihkan." data-close>Pulihkan</button></td></tr>
+          <tr><td><strong>Hari ini, 13:40</strong><div class="meta">6 desain · 3 halaman</div></td><td style="text-align:right"><button class="btn btn-secondary btn-sm" data-confirm-action data-toast="Versi 13:40 dipulihkan." data-close>Pulihkan</button></td></tr>
+          <tr><td><strong>Hari ini, 11:15</strong><div class="meta">4 desain · 2 halaman</div></td><td style="text-align:right"><button class="btn btn-secondary btn-sm" data-confirm-action data-toast="Versi 11:15 dipulihkan." data-close>Pulihkan</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-secondary" data-close>Tutup</button></div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: IMPOR & EKSPOR CADANGAN ═══════════════════════ -->
+<div class="overlay" id="dlg-import" data-od-id="dlg-import">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
+    <div class="dialog-head">
+      <div><h2 id="import-title" style="font-size:var(--text-lg)">Impor Proyek</h2>
+        <div class="dialog-sub">Pulihkan proyek dari berkas cadangan .pinzip.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="dropzone"><span class="empty-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 4v10M8.5 10.5 12 14l3.5-3.5"/><path d="M5 18h14"/></svg></span><strong>Pilih berkas .pinzip</strong><span class="body-muted body-sm">Ukuran maksimum 200 MB</span><button class="btn btn-secondary btn-sm">Pilih File</button></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-secondary" data-close>Batal</button><button class="btn btn-primary" data-confirm-action data-toast="Proyek berhasil diimpor." data-close>Impor</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="dlg-backup" data-od-id="dlg-backup">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="backup-title">
+    <div class="dialog-head">
+      <div><h2 id="backup-title" style="font-size:var(--text-lg)">Ekspor Cadangan</h2>
+        <div class="dialog-sub">Simpan seluruh proyek ke satu berkas untuk dipindahkan.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="switch-row"><div class="switch-label">Sertakan berkas gambar</div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+      <div class="switch-row"><div class="switch-label">Sertakan riwayat versi</div><button class="switch" role="switch" aria-checked="false"></button></div>
+      <div class="progress-wrap mt-4" id="backup-progress" hidden>
+        <div class="progress-track"><div class="progress-fill" id="backup-fill"></div></div>
+        <div class="progress-note"><span id="backup-note">Menyiapkan…</span><span class="num" id="backup-pct">0%</span></div>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-secondary" data-close>Batal</button><button class="btn btn-primary" id="btn-start-backup" data-od-id="btn-start-backup">Ekspor Cadangan</button></div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: PENGATURAN / PROSES EKSPOR ════════════════════ -->
+<div class="overlay" id="dlg-export" data-od-id="dlg-export">
+  <div class="dialog dialog-lg" role="dialog" aria-modal="true" aria-labelledby="export-title">
+    <div class="dialog-head">
+      <div><h2 id="export-title" style="font-size:var(--text-lg)">Pengaturan Ekspor</h2>
+        <div class="dialog-sub">Pilih format, halaman, dan resolusi keluaran.</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body">
+      <div class="grid-2">
+        <div class="stack-sm">
+          <div class="field"><label for="ex-format">Format</label><select class="select" id="ex-format"><option selected>PDF (siap cetak)</option><option>PNG</option><option>PDF + PNG</option></select></div>
+          <div class="field"><label for="ex-dpi">Resolusi</label><select class="select" id="ex-dpi"><option>150 DPI</option><option selected>300 DPI</option><option>600 DPI</option></select></div>
+          <div class="field"><label for="ex-pages">Halaman</label><select class="select" id="ex-pages"><option selected>Semua halaman (3)</option><option>Halaman aktif saja</option><option>Pilih manual…</option></select></div>
+        </div>
+        <div class="stack-sm">
+          <div class="switch-row"><div class="switch-label">Tanda potong</div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+          <div class="switch-row"><div class="switch-label">Garis bleed</div><button class="switch is-on" role="switch" aria-checked="true"></button></div>
+          <div class="switch-row"><div class="switch-label">Nomor desain</div><button class="switch" role="switch" aria-checked="false"></button></div>
+          <div class="switch-row"><div class="switch-label">Latar transparan (PNG)</div><button class="switch" role="switch" aria-checked="false"></button></div>
+        </div>
+      </div>
+
+      <div class="progress-wrap mt-5" id="export-progress" hidden>
+        <div class="progress-track"><div class="progress-fill" id="export-fill"></div></div>
+        <div class="progress-note"><span id="export-note">Menyiapkan…</span><span class="num" id="export-pct">0%</span></div>
+      </div>
+      <p class="field-help mt-3" id="export-estimate">Perkiraan ukuran berkas: 4,2 MB · 3 halaman</p>
+    </div>
+    <div class="dialog-foot">
+      <button class="btn btn-ghost foot-left" id="export-cancel" data-close hidden>Batal Ekspor</button>
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-secondary" id="btn-export-png-2" data-od-id="btn-export-png-2">Ekspor PNG</button>
+      <button class="btn btn-primary" id="btn-start-export" data-od-id="btn-start-export">Ekspor PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DIALOG: KONFIRMASI (generik) ══════════════════════════ -->
+<div class="overlay" id="dlg-confirm" data-od-id="dlg-confirm">
+  <div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="dialog-head">
+      <div><h2 id="confirm-title" style="font-size:var(--text-lg)">Konfirmasi</h2>
+        <div class="dialog-sub" id="confirm-msg">Anda yakin ingin melanjutkan?</div></div>
+      <button class="btn-close" data-close aria-label="Tutup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="dialog-body" id="confirm-body" hidden></div>
+    <div class="dialog-foot">
+      <button class="btn btn-secondary" data-close>Batal</button>
+      <button class="btn btn-primary" id="confirm-ok">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NOTIFIKASI ════════════════════════════════════════════ -->
+<div class="toast-stack" id="toast-stack" data-od-id="toast-stack" aria-live="polite"></div>
+<div class="tooltip-layer" id="tooltip-layer" data-od-id="tooltip-layer" hidden></div>

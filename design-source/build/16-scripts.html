@@ -1,0 +1,548 @@
+
+</main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var $  = function (s, c) { return (c || document).querySelector(s); };
+  var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem('pin-studio:' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem('pin-studio:' + k, JSON.stringify(v)); } catch (e) {} }
+  };
+
+  /* ─── TOASTS ─────────────────────────────────────────────── */
+  var stack = $('#toast-stack');
+  var ICONS = {
+    ok:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9.5"/></svg>',
+    err:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v6M12 16.5v.01"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.01"/></svg>'
+  };
+  function toast(msg, kind) {
+    kind = kind || 'ok';
+    var el = document.createElement('div');
+    el.className = 'toast is-' + (kind === 'ok' ? 'ok' : kind === 'err' ? 'err' : 'info');
+    el.setAttribute('role', 'status');
+    el.innerHTML = '<span class="toast-mark">' + ICONS[kind === 'err' ? 'err' : kind === 'info' ? 'info' : 'ok'] + '</span><span>' + msg + '</span>';
+    stack.appendChild(el);
+    setTimeout(function () { el.classList.add('is-out'); setTimeout(function () { el.remove(); }, 180); }, 3200);
+  }
+  window.pinToast = toast;
+
+  /* ─── DIALOGS ────────────────────────────────────────────── */
+  function openDlg(id) {
+    var el = document.getElementById(id);
+    if (!el) { toast('Dialog tidak ditemukan.', 'err'); return; }
+    $$('.overlay.is-open').forEach(function (o) { o.classList.remove('is-open'); });
+    el.classList.add('is-open');
+    var f = el.querySelector('input, select, textarea, button');
+    if (f && f.tagName !== 'BUTTON') setTimeout(function () { f.focus(); }, 60);
+  }
+  function closeDlg(el) {
+    (el ? [el] : $$('.overlay.is-open')).forEach(function (o) { o.classList.remove('is-open'); });
+  }
+  window.pinOpenDialog = openDlg;
+
+  document.addEventListener('click', function (e) {
+    var opener = e.target.closest('[data-open-dialog]');
+    if (opener) { e.preventDefault(); openDlg(opener.getAttribute('data-open-dialog')); return; }
+
+    var closer = e.target.closest('[data-close]');
+    if (closer) { e.preventDefault(); closeDlg(closer.closest('.overlay')); return; }
+
+    if (e.target.classList && e.target.classList.contains('overlay')) { closeDlg(e.target); return; }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var open = $('.overlay.is-open');
+      if (open) { closeDlg(open); return; }
+      var rail = $('#rail'); if (rail) rail.classList.remove('is-open');
+    }
+  });
+
+  /* ─── NAVIGATION ─────────────────────────────────────────── */
+  var PAGE_TITLES = {
+    home: 'Beranda', editor: 'Editor', gallery: 'Galeri Desain',
+    templates: 'Template & Preset', history: 'Riwayat Proyek',
+    settings: 'Pengaturan', help: 'Bantuan', preview: 'Pratinjau Cetak'
+  };
+  function goPage(name) {
+    var page = document.querySelector('[data-page="' + name + '"]');
+    if (!page) return;
+    $$('.page').forEach(function (p) { p.classList.remove('is-active'); });
+    page.classList.add('is-active');
+    $$('[data-nav]').forEach(function (b) {
+      b.classList.toggle('is-active', b.getAttribute('data-nav') === name);
+    });
+    store.set('page', name);
+    var rail = document.getElementById('rail'); if (rail) rail.classList.remove('is-open');
+    document.title = 'Pin Print Studio — ' + (PAGE_TITLES[name] || 'Studio');
+  }
+  window.pinGoPage = goPage;
+
+  $$('[data-nav]').forEach(function (btn) {
+    btn.addEventListener('click', function () { goPage(btn.getAttribute('data-nav')); });
+  });
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('[data-nav-link]');
+    if (link) { goPage(link.getAttribute('data-nav-link')); }
+  });
+
+  /* ─── GENERIC TOAST / CONFIRM ACTIONS ────────────────────── */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-toast]');
+    if (t) { toast(t.getAttribute('data-toast'), t.getAttribute('data-kind') || 'ok'); }
+  });
+
+  var pendingConfirm = null;
+  document.addEventListener('click', function (e) {
+    var c = e.target.closest('[data-confirm]');
+    if (!c) return;
+    e.preventDefault();
+    pendingConfirm = c;
+    $('#confirm-msg').textContent = c.getAttribute('data-confirm');
+    var extra = c.getAttribute('data-confirm-note');
+    var body = $('#confirm-body');
+    body.innerHTML = extra ? '<p class="body-sm muted" style="margin:0">' + extra + '</p>' : '';
+    body.hidden = !extra;
+    openDlg('dlg-confirm');
+  });
+  var okBtn = $('#confirm-ok');
+  if (okBtn) okBtn.addEventListener('click', function () {
+    closeDlg($('#dlg-confirm'));
+    if (pendingConfirm) {
+      var msg = pendingConfirm.getAttribute('data-confirm-toast') || 'Tindakan selesai.';
+      toast(msg, 'ok');
+      if (pendingConfirm.hasAttribute('data-confirm-nav')) goPage(pendingConfirm.getAttribute('data-confirm-nav'));
+      pendingConfirm = null;
+    }
+  });
+
+  /* ─── OVERLAY CONFIRM-ACTION BUTTONS ─────────────────────── */
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-confirm-action]');
+    if (!a) return;
+    if (a.hasAttribute('data-nav-go')) goPage(a.getAttribute('data-nav-go'));
+  });
+
+  /* ─── SWITCHES / CHECK ROWS / SEGMENTS ───────────────────── */
+  document.addEventListener('click', function (e) {
+    var sw = e.target.closest('.switch');
+    if (sw) {
+      var on = sw.classList.toggle('is-on');
+      sw.setAttribute('aria-checked', on ? 'true' : 'false');
+      e.preventDefault();
+      return;
+    }
+    var cr = e.target.closest('.check-row');
+    if (cr) {
+      var st = cr.classList.toggle('is-checked');
+      var bx = cr.querySelector('.box');
+      if (bx) bx.classList.toggle('is-checked', st);
+      return;
+    }
+    var box = e.target.closest('.box');
+    if (box && !box.closest('.check-row')) { box.classList.toggle('is-checked'); return; }
+
+    var segBtn = e.target.closest('.seg button');
+    if (segBtn) {
+      $$('button', segBtn.parentElement).forEach(function (b) { b.classList.remove('is-active'); });
+      segBtn.classList.add('is-active');
+      return;
+    }
+  });
+
+  /* ─── SETTINGS TABS ──────────────────────────────────────── */
+  $$('#settings-tabs button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      $$('[data-tab-panel]').forEach(function (p) { p.hidden = true; });
+      var panel = document.querySelector('[data-tab-panel="' + b.getAttribute('data-tab') + '"]');
+      if (panel) panel.hidden = false;
+    });
+  });
+
+  /* ─── RANGES → live value ────────────────────────────────── */
+  function bindRange(id, outId, suffix) {
+    var input = document.getElementById(id), out = document.getElementById(outId);
+    if (!input || !out) return;
+    input.addEventListener('input', function () { out.textContent = input.value + (suffix || ''); });
+  }
+  bindRange('in-zoom', 'zoom-img-val', '%');
+  bindRange('in-rotate', 'rotate-val', '\u00B0');
+
+  /* ─── PAPER SELECT → custom size ─────────────────────────── */
+  var paperSel = $('#in-paper'), customSize = $('#custom-size');
+  if (paperSel && customSize) {
+    paperSel.addEventListener('change', function () {
+      customSize.hidden = paperSel.value !== 'custom';
+      toast('Kertas diubah ke ' + paperSel.options[paperSel.selectedIndex].text.split(' ')[0] + '.', 'info');
+    });
+  }
+
+  /* ─── PREVIEW TOGGLES (layers) ───────────────────────────── */
+  var TOGGLE_LAYER = { cut: 'layer-grid', bleed: 'layer-bleed', grid: 'layer-grid', margin: 'layer-margin', safe: 'layer-safe' };
+  var toggleState = store.get('toggles', { cut: true, bleed: true, grid: true, margin: false, safe: false, filename: true, number: true, marks: false });
+  function applyToggles() {
+    var lb = $('#layer-bleed'), lm = $('#layer-margin'), ls = $('#layer-safe');
+    if (lb) lb.style.display = toggleState.bleed ? '' : 'none';
+    if (lm) lm.style.display = toggleState.margin ? '' : 'none';
+    if (ls) ls.style.display = toggleState.safe ? '' : 'none';
+    var grid = $('#layer-grid'); if (grid) grid.style.display = toggleState.grid ? '' : 'none';
+    var sh = document.getElementById('sheet');
+    if (sh) {
+      sh.classList.toggle('show-cut', !!toggleState.cut);
+      sh.classList.toggle('show-marks', !!toggleState.marks);
+    }
+    $$('.pin-tag').forEach(function (n) { n.style.display = toggleState.filename ? '' : 'none'; });
+    $$('.pin-num').forEach(function (n) { n.style.display = toggleState.number ? '' : 'none'; });
+    $$('[data-toggle]').forEach(function (b) {
+      var k = b.getAttribute('data-toggle');
+      b.classList.toggle('is-on', !!toggleState[k]);
+    });
+    store.set('toggles', toggleState);
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-toggle]');
+    if (!b) return;
+    var k = b.getAttribute('data-toggle');
+    toggleState[k] = !toggleState[k];
+    applyToggles();
+    toast((b.textContent.trim() + (toggleState[k] ? ' ditampilkan.' : ' disembunyikan.')), 'info');
+  });
+  applyToggles();
+
+  /* ─── ASSET SELECTION ────────────────────────────────────── */
+  var assetList = $('#asset-list');
+  if (assetList) {
+    $$('.asset', assetList).forEach(function (row) {
+      row.addEventListener('click', function () {
+        var box = row.querySelector('.box');
+        var on = box.classList.toggle('is-checked');
+        row.classList.toggle('is-selected', on);
+        var total = $$('.asset', assetList).filter(function (r) { return r.querySelector('.box').classList.contains('is-checked'); }).length;
+        var sel = $('#asset-total');
+        if (sel) sel.textContent = $$('.asset', assetList).length;
+        markDirty();
+      });
+    });
+  }
+  var selAll = $('#btn-select-all');
+  if (selAll) selAll.addEventListener('click', function () {
+    $$('.asset', assetList).forEach(function (r) { r.querySelector('.box').classList.add('is-checked'); r.classList.add('is-selected'); });
+    toast('Semua desain dipilih.', 'info');
+  });
+  var desel = $('#btn-deselect');
+  if (desel) desel.addEventListener('click', function () {
+    $$('.asset', assetList).forEach(function (r) { r.querySelector('.box').classList.remove('is-checked'); r.classList.remove('is-selected'); });
+    toast('Pilihan dibatalkan.', 'info');
+  });
+  var focusSearch = $('#btn-focus-search');
+  if (focusSearch) focusSearch.addEventListener('click', function () { var i = $('#asset-search-input'); if (i) i.focus(); });
+
+  /* asset search filter */
+  var searchInput = $('#asset-search-input');
+  if (searchInput) searchInput.addEventListener('input', function () {
+    var q = searchInput.value.toLowerCase();
+    $$('.asset', assetList).forEach(function (r) {
+      var name = (r.querySelector('.asset-name') || {}).textContent || '';
+      r.style.display = name.toLowerCase().indexOf(q) > -1 ? '' : 'none';
+    });
+  });
+
+  /* ─── ZOOM ───────────────────────────────────────────────── */
+  var zoom = store.get('zoom', 78);
+  var sheet = $('#sheet');
+  function applyZoom() {
+    zoom = Math.max(25, Math.min(200, Math.round(zoom)));
+    if (sheet) {
+      sheet.style.transform = 'scale(' + (zoom / 78) + ')';
+      sheet.style.transformOrigin = 'top center';
+    }
+    var zv = $('#zoom-val'); if (zv) zv.textContent = zoom + '%';
+    store.set('zoom', zoom);
+  }
+  function zBtn(id, fn) { var b = $(id); if (b) b.addEventListener('click', fn); }
+  zBtn('#zoom-in', function () { zoom += 10; applyZoom(); });
+  zBtn('#zoom-out', function () { zoom -= 10; applyZoom(); });
+  zBtn('#zoom-fit', function () { zoom = 78; applyZoom(); toast('Tampilan disesuaikan ke layar.', 'info'); });
+  zBtn('#zoom-100', function () { zoom = 100; applyZoom(); toast('Zoom 100%.', 'info'); });
+  applyZoom();
+
+  /* ─── PAGE NAVIGATION (lembar) ───────────────────────────── */
+  var pageNo = 1, pageTotal = 3;
+  function renderPage() {
+    var t = 'Hal. ' + pageNo + ' / ' + pageTotal;
+    var a = $('#page-indicator'), b = $('#pv-indicator');
+    if (a) a.textContent = t; if (b) b.textContent = t;
+    store.set('sheetPage', pageNo);
+  }
+  zBtn('#page-prev', function () { if (pageNo > 1) { pageNo--; renderPage(); } });
+  zBtn('#page-next', function () { if (pageNo < pageTotal) { pageNo++; renderPage(); } });
+  zBtn('#page-add', function () { pageTotal++; pageNo = pageTotal; renderPage(); markDirty(); toast('Halaman baru ditambahkan.', 'ok'); });
+  var pageDel = $('#page-del');
+  if (pageDel) pageDel.addEventListener('click', function () {});
+  renderPage();
+
+  /* ─── PIN DRAG & SELECT ──────────────────────────────────── */
+  var dragging = null, dragOff = { x: 0, y: 0 };
+  function selectPin(pin) {
+    $$('.pin').forEach(function (p) { if (p !== pin) p.classList.remove('is-selected'); });
+    if (pin) pin.classList.add('is-selected');
+    if (pin) {
+      var px = $('#in-pos-x'), py = $('#in-pos-y');
+      if (px) px.value = Math.round(parseFloat(pin.style.left) || 0);
+      if (py) py.value = Math.round(parseFloat(pin.style.top) || 0);
+    }
+  }
+  $$('.pin').forEach(function (pin) {
+    pin.addEventListener('pointerdown', function (e) {
+      selectPin(pin);
+      if (pin.classList.contains('is-locked')) { toast('Posisi desain terkunci.', 'err'); return; }
+      dragging = pin;
+      pin.style.cursor = 'grabbing';
+      var r = pin.getBoundingClientRect();
+      dragOff.x = e.clientX - r.left;
+      dragOff.y = e.clientY - r.top;
+      pin.setPointerCapture && pin.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+  });
+  document.addEventListener('pointermove', function (e) {
+    if (!dragging || !sheet) return;
+    var sr = sheet.getBoundingClientRect();
+    var scale = sr.width / sheet.offsetWidth || 1;
+    var x = (e.clientX - sr.left) / scale - dragOff.x;
+    var y = (e.clientY - sr.top) / scale - dragOff.y;
+    x = Math.max(-10, Math.min(sheet.offsetWidth - dragging.offsetWidth + 10, x));
+    y = Math.max(-10, Math.min(sheet.offsetHeight - dragging.offsetHeight + 10, y));
+    dragging.style.left = x + 'px';
+    dragging.style.top = y + 'px';
+    var px = $('#in-pos-x'), py = $('#in-pos-y');
+    if (px) px.value = Math.round(x);
+    if (py) py.value = Math.round(y);
+  });
+  document.addEventListener('pointerup', function () {
+    if (dragging) { dragging.style.cursor = 'grab'; dragging = null; markDirty(); }
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.pin')) { selectPin(e.target.closest('.pin')); }
+  });
+
+  /* ─── SAVE STATE / DIRTY ─────────────────────────────────── */
+  var saveTimer = null;
+  function markDirty() {
+    var dot = $('#save-dot'), label = $('#save-label');
+    if (dot) dot.className = 'save-dot is-saving';
+    if (label) label.textContent = 'Menyimpan…';
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function () {
+      if (dot) dot.className = 'save-dot';
+      if (label) label.textContent = 'Tersimpan baru saja';
+      store.set('savedAt', Date.now());
+    }, 900);
+  }
+  window.pinMarkDirty = markDirty;
+
+  function doSave() {
+    markDirty();
+    setTimeout(function () { toast('Proyek tersimpan.', 'ok'); }, 500);
+  }
+  var bs = $('#btn-save'); if (bs) bs.addEventListener('click', doSave);
+  var rs = $('#rail-save'); if (rs) rs.addEventListener('click', doSave);
+
+  /* ─── UNDO / REDO ────────────────────────────────────────── */
+  var undoStack = [];
+  function pushUndo() {
+    undoStack.push(Date.now());
+    var u = $('#btn-undo'); if (u) u.disabled = false;
+    store.set('hasUndo', true);
+  }
+  var ub = $('#btn-undo');
+  if (ub) ub.addEventListener('click', function () { toast('Perubahan diurungkan.', 'info'); var r = $('#btn-redo'); if (r) r.disabled = false; });
+  var rb = $('#btn-redo');
+  if (rb) rb.addEventListener('click', function () { toast('Perubahan diulang.', 'info'); });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-od-id^="btn-"]') && !e.target.closest('#btn-undo,#btn-redo')) pushUndo();
+  });
+
+  /* ─── EXPORT PROGRESS ────────────────────────────────────── */
+  function runProgress(fillId, pctId, noteId, onDone) {
+    var fill = $('#' + fillId), pct = $('#' + pctId), note = $('#' + noteId);
+    var wrap = fill ? fill.closest('.progress-wrap') : null;
+    if (wrap) wrap.hidden = false;
+    var p = 0;
+    var notes = ['Menyiapkan halaman…', 'Merender desain 300 DPI…', 'Menyematkan tanda potong…', 'Menulis berkas…'];
+    var t = setInterval(function () {
+      p += Math.random() * 16 + 6;
+      if (p >= 100) { p = 100; }
+      if (fill) fill.style.width = p + '%';
+      if (pct) pct.textContent = Math.round(p) + '%';
+      if (note) note.textContent = notes[Math.min(notes.length - 1, Math.floor(p / 26))];
+      if (p >= 100) {
+        clearInterval(t);
+        setTimeout(function () {
+          if (wrap) wrap.hidden = true;
+          if (fill) fill.style.width = '0%';
+          if (onDone) onDone();
+        }, 500);
+      }
+    }, 260);
+  }
+  var se = $('#btn-start-export');
+  if (se) se.addEventListener('click', function () {
+    var fmt = ($('#ex-format') || {}).value || 'PDF';
+    var label = fmt.indexOf('PNG') > -1 && fmt.indexOf('PDF') === -1 ? 'PNG' : 'PDF';
+    runProgress('export-fill', 'export-pct', 'export-note', function () {
+      toast('Ekspor ' + label + ' selesai — 3 halaman tersimpan.', 'ok');
+    });
+  });
+  var spe = $('#pv-export-pdf');
+  if (spe) spe.addEventListener('click', function () { toast('Menyiapkan ekspor PDF…', 'info'); setTimeout(function () { toast('Ekspor PDF selesai.', 'ok'); }, 1400); });
+  var spg = $('#pv-export-png');
+  if (spg) spg.addEventListener('click', function () { toast('Menyiapkan ekspor PNG…', 'info'); setTimeout(function () { toast('Ekspor PNG selesai.', 'ok'); }, 1400); });
+  var egn = $('#btn-export-png'); if (egn) egn.addEventListener('click', function () { toast('Menyiapkan ekspor PNG…', 'info'); setTimeout(function () { toast('Ekspor PNG selesai.', 'ok'); }, 1400); });
+  var egn2 = $('#btn-export-png-2'); if (egn2) egn2.addEventListener('click', function () { runProgress('export-fill', 'export-pct', 'export-note', function () { toast('Ekspor PNG selesai.', 'ok'); }); });
+  var pvPrint = $('#pv-print'); if (pvPrint) pvPrint.addEventListener('click', function () { toast('Mengirim 3 halaman ke antrean cetak.', 'ok'); });
+  var btnPrint = $('#btn-print'); if (btnPrint) btnPrint.addEventListener('click', function () { toast('Mengirim ke printer “HP LaserJet Pro”.', 'ok'); });
+  var pvCancel = $('#pv-cancel'); if (pvCancel) pvCancel.addEventListener('click', function () { toast('Ekspor dibatalkan.', 'err'); goPage('editor'); });
+
+  /* ─── BACKUP PROGRESS ────────────────────────────────────── */
+  var sb = $('#btn-start-backup');
+  if (sb) sb.addEventListener('click', function () {
+    runProgress('backup-fill', 'backup-pct', 'backup-note', function () { toast('Cadangan diekspor (5 proyek).', 'ok'); closeDlg($('#dlg-backup')); });
+  });
+  var backupBtn = $('#btn-backup'); if (backupBtn) backupBtn.addEventListener('click', function () { openDlg('dlg-backup'); });
+  var backupBtn2 = $('#btn-backup-2'); if (backupBtn2) backupBtn2.addEventListener('click', function () { openDlg('dlg-backup'); });
+
+  /* ─── CONFIRM-DRIVEN NAV (delete/reset toast) ────────────── */
+  $$('[data-confirm]').forEach(function (el) {
+    if (!el.hasAttribute('data-confirm-toast')) {
+      el.setAttribute('data-confirm-toast', el.textContent.trim().indexOf('Reset') === 0 ? 'Proyek telah direset.' : 'Item dihapus.');
+    }
+  });
+
+  /* ─── LAYOUT ACTIONS ─────────────────────────────────────── */
+  var alignG = $('#btn-align-grid'); if (alignG) alignG.addEventListener('click', function () { toast('Desain diratakan ke grid.', 'ok'); markDirty(); });
+  var centerL = $('#btn-center-layout'); if (centerL) centerL.addEventListener('click', function () { toast('Layout dipusatkan pada kertas.', 'ok'); markDirty(); });
+  var resetL = $('#btn-reset-layout');
+  var optB = $('#btn-optimize'); if (optB) optB.addEventListener('click', function () { toast('Efisiensi kertas naik ke 96%.', 'ok'); markDirty(); });
+  var rotL = $('#btn-rot-left'); if (rotL) rotL.addEventListener('click', function () { var r = $('#in-rotate'); if (r) { r.value = Math.max(-180, +r.value - 90); $('#rotate-val').textContent = r.value + '\u00B0'; } toast('Gambar diputar 90\u00B0 ke kiri.', 'info'); });
+  var rotR = $('#btn-rot-right'); if (rotR) rotR.addEventListener('click', function () { var r = $('#in-rotate'); if (r) { r.value = Math.min(180, +r.value + 90); $('#rotate-val').textContent = r.value + '\u00B0'; } toast('Gambar diputar 90\u00B0 ke kanan.', 'info'); });
+  var lockSw = $('#sw-lock');
+  function setLock(on) {
+    if (lockSw) { lockSw.classList.toggle('is-on', on); lockSw.setAttribute('aria-checked', on ? 'true' : 'false'); }
+    $$('.pin.is-selected').forEach(function (p) { p.classList.toggle('is-locked', on); });
+    toast(on ? 'Posisi desain dikunci.' : 'Kunci posisi dibuka.', on ? 'info' : 'info');
+  }
+  if (lockSw) lockSw.addEventListener('click', function () { /* handled by generic switch; sync pins after */ setTimeout(function () { $$('.pin.is-selected').forEach(function (p) { p.classList.toggle('is-locked', lockSw.classList.contains('is-on')); }); }, 0); });
+  var lockB = $('#btn-lock-pos'); if (lockB) lockB.addEventListener('click', function () { setLock(true); });
+  var unlockB = $('#btn-unlock-pos'); if (unlockB) unlockB.addEventListener('click', function () { setLock(false); });
+  var applySel = $('#btn-apply-selected'); if (applySel) applySel.addEventListener('click', function () { toast('Pengaturan diterapkan ke 1 desain terpilih.', 'ok'); markDirty(); });
+  var applySet = $('#btn-apply-settings'); if (applySet) applySet.addEventListener('click', function () { toast('Pengaturan desain diterapkan.', 'ok'); markDirty(); });
+  var remL = $('#btn-remove-layout'); if (remL) remL.addEventListener('click', function () {});
+  var crop = $('#btn-crop'); if (crop) crop.addEventListener('click', function () { toast('Mode crop aktif — seret pada gambar.', 'info'); });
+  var cenI = $('#btn-center-img'); if (cenI) cenI.addEventListener('click', function () { toast('Gambar dipusatkan di dalam pin.', 'ok'); });
+  var resP = $('#btn-reset-pos'); if (resP) resP.addEventListener('click', function () { var x = $('#in-pos-x'), y = $('#in-pos-y'); if (x) x.value = 0; if (y) y.value = 0; toast('Posisi gambar direset.', 'ok'); });
+
+  /* ─── PANEL TOGGLES (mobile) ─────────────────────────────── */
+  var mt = $('#menu-toggle'); if (mt) mt.addEventListener('click', function () { $('#rail').classList.toggle('is-open'); });
+  var pr = $('#btn-panel-r'); if (pr) pr.addEventListener('click', function () { $('#panel-r').classList.toggle('is-open'); });
+  var prc = $('#panel-r-close'); if (prc) prc.addEventListener('click', function () { $('#panel-r').classList.remove('is-open'); });
+
+  /* ─── RENAME PROJECT ─────────────────────────────────────── */
+  var rn = $('#btn-rename-project');
+  if (rn) rn.addEventListener('click', function () {
+    var name = prompt('Nama proyek baru:', rn.textContent.trim());
+    if (name && name.trim()) {
+      rn.textContent = name.trim();
+      var rp = $('#rail-project-name'); if (rp) rp.textContent = name.trim();
+      toast('Nama proyek diperbarui.', 'ok'); markDirty();
+    }
+  });
+
+  /* ─── TOOLBAR / MISC TOASTS ──────────────────────────────── */
+  var pvOpen = $('#btn-preview-print'); if (pvOpen) pvOpen.addEventListener('click', function () { goPage('preview'); });
+  var backEd = $('#btn-back-editor'); if (backEd) backEd.addEventListener('click', function () { goPage('editor'); });
+  var railPv = $('#rail-preview'); if (railPv) railPv.addEventListener('click', function () { goPage('preview'); });
+  var saveSet = $('#btn-settings-save'); if (saveSet) saveSet.addEventListener('click', function () { toast('Pengaturan disimpan.', 'ok'); });
+  var galSel = $('#gallery-select-mode'); if (galSel) galSel.addEventListener('click', function () { var on = galSel.classList.toggle('is-on'); toast(on ? 'Mode pilih berkas aktif.' : 'Mode pilih berkas nonaktif.', 'info'); });
+  var galAdd = $('#gallery-tambah'); if (galAdd) galAdd.addEventListener('click', function () { toast('2 desain ditambahkan ke proyek.', 'ok'); });
+  var saveToast = $('#btn-settings-reset'); if (saveToast) saveToast.addEventListener('click', function () {});
+  var clearCache = $('#btn-clear-cache'); if (clearCache) clearCache.addEventListener('click', function () { toast('Cache pratinjau dibersihkan (64 MB).', 'ok'); });
+
+  /* ─── UPLOAD DROPZONE ────────────────────────────────────── */
+  var drop = $('#upload-drop'), uInput = $('#upload-input'), uPick = $('#upload-pick');
+  if (uPick && uInput) uPick.addEventListener('click', function () { uInput.click(); });
+  if (uInput) uInput.addEventListener('change', function () { if (uInput.files.length) toast(uInput.files.length + ' berkas siap diunggah.', 'info'); });
+  if (drop) {
+    ['dragover', 'dragenter'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('is-over'); }); });
+    ['dragleave', 'drop'].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('is-over'); }); });
+    drop.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files.length) toast(e.dataTransfer.files.length + ' berkas dijatuhkan.', 'info'); });
+  }
+
+  /* ─── KEYBOARD SHORTCUTS ─────────────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    var ctrl = e.ctrlKey || e.metaKey;
+    if (ctrl && e.key.toLowerCase() === 's') { e.preventDefault(); doSave(); }
+    if (ctrl && e.key.toLowerCase() === 'z') { e.preventDefault(); var u = $('#btn-undo'); if (u && !u.disabled) u.click(); }
+    if (ctrl && e.key.toLowerCase() === 'y') { e.preventDefault(); var r = $('#btn-redo'); if (r && !r.disabled) r.click(); }
+    if (ctrl && (e.key === '=' || e.key === '+')) { e.preventDefault(); zoom += 10; applyZoom(); }
+    if (ctrl && e.key === '-') { e.preventDefault(); zoom -= 10; applyZoom(); }
+    if (ctrl && e.key.toLowerCase() === 'a' && $('.page.is-active[data-page="editor"]')) { e.preventDefault(); if (selAll) selAll.click(); }
+    if (e.key === 'Delete' && $('.page.is-active[data-page="editor"]')) { toast('Desain terpilih dihapus dari layout.', 'ok'); }
+  });
+
+  /* ─── TOOLTIP LAYER (posisi fixed, tak terpotong overflow) ─ */
+  var tipLayer = $('#tooltip-layer');
+  var tipOwner = null;
+  function showTip(el) {
+    if (!tipLayer) return;
+    var txt = el.getAttribute('data-tip');
+    if (!txt) return;
+    tipLayer.textContent = txt;
+    tipLayer.hidden = false;
+    tipLayer.style.left = '-9999px';
+    tipLayer.style.top = '0px';
+    var w = tipLayer.offsetWidth, h = tipLayer.offsetHeight;
+    var r = el.getBoundingClientRect();
+    var left = r.left + r.width / 2 - w / 2;
+    left = Math.max(8, Math.min(window.innerWidth - w - 8, left));
+    var top = r.bottom + 8;
+    if (top + h > window.innerHeight - 8) top = r.top - h - 8;
+    tipLayer.style.left = left + 'px';
+    tipLayer.style.top = top + 'px';
+  }
+  function hideTip() { if (tipLayer) tipLayer.hidden = true; tipOwner = null; }
+  document.addEventListener('mouseover', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (t && t !== tipOwner) { tipOwner = t; showTip(t); }
+  });
+  document.addEventListener('mouseout', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (t && t === tipOwner) hideTip();
+  });
+  document.addEventListener('focusin', function (e) {
+    var t = e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (t) { tipOwner = t; showTip(t); }
+  });
+  document.addEventListener('focusout', hideTip);
+  window.addEventListener('scroll', hideTip, true);
+  window.addEventListener('resize', hideTip);
+
+  /* ─── RESTORE SESSION ────────────────────────────────────── */
+  var initial = store.get('page', 'home');
+  if (initial === 'preview') initial = 'editor';
+  goPage(initial);
+  var savedAt = store.get('savedAt');
+  if (savedAt) {
+    var mins = Math.max(1, Math.round((Date.now() - savedAt) / 60000));
+    var lbl = $('#save-label'); if (lbl) lbl.textContent = 'Tersimpan ' + mins + ' menit lalu';
+  }
+  if (store.get('hasUndo')) { var u2 = $('#btn-undo'); if (u2) u2.disabled = false; }
+
+  toast('Selamat datang di Pin Print Studio.', 'info');
+})();
+</script>
+</body>
+</html>

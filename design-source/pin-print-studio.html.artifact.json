@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "pin-print-studio.html",
+  "entry": "pin-print-studio.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-10-22T03:46:30.142Z",
+  "updatedAt": "2026-10-22T03:46:30.142Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

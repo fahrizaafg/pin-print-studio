@@ -1,0 +1,112 @@
+
+/* ─── canvas & sheet ────────────────────────────────────────────── */
+.canvas-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.canvas-scroll {
+  flex: 1; min-height: 0; overflow: auto; display: grid; place-items: center;
+  padding: var(--space-6);
+  background:
+    linear-gradient(color-mix(in oklch, var(--fg) 3%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, color-mix(in oklch, var(--fg) 3%, transparent) 1px, transparent 1px) 0 0 / 24px 24px;
+}
+.sheet-wrap { position: relative; }
+.sheet {
+  position: relative; background: var(--bg);
+  box-shadow: var(--shadow-sheet);
+  width: 620px; height: 877px;
+  transform-origin: top center;
+}
+.sheet-layer { position: absolute; inset: 0; pointer-events: none; }
+.sheet-layer > * { pointer-events: auto; }
+.margin-box {
+  position: absolute; border: 1px dashed color-mix(in oklch, var(--warn) 55%, transparent);
+  background: var(--margin-fill);
+}
+.safe-box {
+  position: absolute; border: 1px dashed color-mix(in oklch, var(--success) 55%, transparent);
+  background: var(--safe-fill);
+}
+.bleed-box {
+  position: absolute; border: 1px solid color-mix(in oklch, var(--accent) 55%, transparent);
+  background: var(--bleed-fill);
+}
+.grid-lines { position: absolute; inset: 0; }
+.pin {
+  position: absolute; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  cursor: grab; overflow: hidden;
+  transition: box-shadow var(--motion-fast) var(--ease-standard);
+}
+.pin:hover { box-shadow: inset 0 0 0 1px var(--meta), 0 2px 8px rgba(0,0,0,.1); }
+.pin.is-selected {
+  box-shadow: inset 0 0 0 2px var(--accent), 0 3px 12px rgba(0,0,0,.16);
+}
+.pin.is-locked { cursor: not-allowed; }
+.pin-art {
+  width: 78%; height: 78%; border-radius: 50%;
+  background: var(--fg); color: var(--bg);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 600;
+  overflow: hidden;
+}
+.pin-art svg { width: 56%; height: 56%; }
+.pin-art .initials { font-size: 15px; letter-spacing: -0.02em; }
+.pin-tag {
+  position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+  white-space: nowrap; pointer-events: none;
+}
+.pin-num {
+  position: absolute; top: -8px; right: -8px;
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--radius-pill);
+  background: var(--fg); color: var(--surface);
+  font-family: var(--font-mono); font-size: 9px;
+  display: grid; place-items: center;
+}
+.pin.is-selected .pin-num { background: var(--accent); color: var(--accent-on); }
+.pin-lock {
+  position: absolute; top: -8px; left: -8px;
+  width: 17px; height: 17px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border);
+  display: grid; place-items: center;
+}
+.pin-lock svg { width: 9px; height: 9px; color: var(--fg-2); }
+.cut-mark {
+  position: absolute; width: 13px; height: 13px;
+  border: 1px solid var(--cut-line);
+}
+.cut-mark::before, .cut-mark::after {
+  content: ''; position: absolute; background: var(--cut-line);
+}
+.cut-mark::before { left: 50%; top: -5px; bottom: -5px; width: 1px; }
+.cut-mark::after { top: 50%; left: -5px; right: -5px; height: 1px; }
+
+/* zoom / layout dock */
+.zoombar {
+  background: var(--bg); border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-4); flex: none;
+  overflow-x: auto;
+}
+.zoombar::-webkit-scrollbar { height: 0; }
+.zoombar .tb-sep { height: 18px; }
+.zoom-val {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--muted); min-width: 46px; text-align: center;
+}
+.page-indicator {
+  font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--muted); min-width: 62px; text-align: center;
+}
+.layout-toolbar {
+  background: var(--surface-warm); border-top: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-4); flex: none;
+  overflow-x: auto;
+}
+.layout-toolbar::-webkit-scrollbar { height: 0; }
+.layout-toolbar .lbl {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--meta); flex: none;
+}

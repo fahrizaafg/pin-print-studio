@@ -1,0 +1,106 @@
+
+/* ─── upload / import dropzone ──────────────────────────────────── */
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+  padding: var(--space-8) var(--space-5);
+  border: 1.5px dashed var(--border); border-radius: var(--radius-lg);
+  background: var(--surface-warm); text-align: center;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+              background var(--motion-fast) var(--ease-standard);
+}
+.dropzone:hover, .dropzone.is-over { border-color: var(--accent); background: var(--accent-tint); }
+.dropzone strong { font-size: var(--text-sm); font-weight: 600; }
+.dropzone .empty-mark { width: 46px; height: 46px; border-radius: var(--radius-pill);
+  background: var(--bg); border: 1px solid var(--border); display: grid; place-items: center; }
+.dropzone .empty-mark svg { width: 22px; height: 22px; color: var(--accent); }
+
+/* ─── dialog image preview ──────────────────────────────────────── */
+.preview-thumb {
+  border-radius: var(--radius-lg); border: 1px solid var(--border);
+  background: var(--surface); display: grid; place-items: center;
+  min-height: 180px; aspect-ratio: 1 / 1;
+}
+
+/* ─── auto-arrange preview mini sheet ───────────────────────────── */
+.auto-preview {
+  position: relative; width: 100%; aspect-ratio: 210 / 297;
+  max-height: 260px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: var(--elev-raised); overflow: hidden;
+}
+.ap-dot {
+  position: absolute; width: 20%; aspect-ratio: 1 / 1;
+  border-radius: 50%; background: var(--accent-soft);
+  border: 1.5px solid var(--accent);
+}
+
+/* ─── pickable table rows ───────────────────────────────────────── */
+.ds-table tr.is-pickable:hover { background: var(--accent-tint); }
+.ds-table tr.is-pickable { cursor: default; }
+
+/* ─── tooltip layer (JS-positioned) ─────────────────────────────── */
+.tooltip-layer {
+  position: fixed; z-index: 300; pointer-events: none;
+  background: var(--fg); color: var(--surface);
+  font-family: var(--font-body); font-size: var(--text-xs); line-height: 1.3;
+  padding: 5px 9px; border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-pop); max-width: 240px;
+}
+
+/* ─── button pressed / active states ────────────────────────────── */
+.btn-secondary:active { background: var(--surface); }
+.btn.is-busy { pointer-events: none; opacity: .9; }
+
+/* ─── range inputs ──────────────────────────────────────────────── */
+input[type="range"] { -webkit-appearance: none; appearance: none; background: transparent; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: var(--radius-pill); background: var(--border);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -5px;
+  width: 14px; height: 14px; border-radius: 50%; background: var(--accent);
+  border: 2px solid var(--bg); box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: var(--focus-ring); }
+
+/* ─── scrollbars ────────────────────────────────────────────────── */
+.panel-body::-webkit-scrollbar, .page-body::-webkit-scrollbar,
+.canvas-scroll::-webkit-scrollbar, .rail-nav::-webkit-scrollbar { width: 9px; height: 9px; }
+.panel-body::-webkit-scrollbar-thumb, .page-body::-webkit-scrollbar-thumb,
+.canvas-scroll::-webkit-scrollbar-thumb, .rail-nav::-webkit-scrollbar-thumb {
+  background: var(--border); border-radius: var(--radius-pill);
+  border: 2px solid var(--bg);
+}
+.panel-body::-webkit-scrollbar-thumb:hover, .page-body::-webkit-scrollbar-thumb:hover { background: var(--meta); }
+
+/* ─── pin artwork palette ───────────────────────────────────────── */
+.pin-art.art-ink { background: var(--art-ink); }
+.pin-art.art-brown { background: var(--art-brown); }
+.pin-art.art-gray { background: var(--art-gray); }
+.pin-art.art-blue { background: var(--art-blue); }
+.pin-art.art-green { background: var(--art-green); }
+.pin-art.art-yellow { background: var(--art-yellow); }
+
+/* ─── grid overlay on sheet ─────────────────────────────────────── */
+.grid-lines {
+  background-image:
+    linear-gradient(color-mix(in oklch, var(--accent) 20%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklch, var(--accent) 20%, transparent) 1px, transparent 1px);
+  background-size: 31px 31px;
+}
+
+/* ─── cut-line ring on each pin ─────────────────────────────────── */
+.sheet.show-cut .pin {
+  box-shadow: inset 0 0 0 1px var(--border), 0 0 0 2px var(--cut-line);
+}
+.sheet.show-cut .pin.is-selected {
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 2px var(--accent);
+}
+
+/* ─── crop marks (tanda potong) ─────────────────────────────────── */
+.cut-mark { display: none; }
+.sheet.show-marks .cut-mark { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
