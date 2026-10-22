@@ -1,122 +1,85 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { Component, useEffect } from 'react';
+import { StudioProvider, useStudio } from './state/StudioContext.jsx';
+import { ToastProvider } from './state/ToastContext.jsx';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts.js';
+import Rail from './components/Rail.jsx';
+import EditorPage from './components/EditorPage.jsx';
+import HomePage from './components/pages/HomePage.jsx';
+import GalleryPage from './components/pages/GalleryPage.jsx';
+import TemplatesPage from './components/pages/TemplatesPage.jsx';
+import HistoryPage from './components/pages/HistoryPage.jsx';
+import SettingsPage from './components/pages/SettingsPage.jsx';
+import HelpPage from './components/pages/HelpPage.jsx';
+import PreviewPage from './components/pages/PreviewPage.jsx';
+import Dialogs from './components/dialogs/Dialogs.jsx';
+import { TooltipLayer } from './components/ui/TooltipLayer.jsx';
 
-function App() {
-  const [count, setCount] = useState(0)
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif' }}>
+          <h1 style={{ fontSize: 20 }}>Terjadi kesalahan pada antarmuka</h1>
+          <pre style={{ fontSize: 12, whiteSpace: 'pre-wrap', color: '#b00020' }}>{String(this.state.error && this.state.error.stack)}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function Shell() {
+  const { page, railOpen, closeRail } = useStudio();
+  useKeyboardShortcuts();
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <div className="app">
+        <Rail />
+        <main className="main" id="main">
+          <HomePage active={page === 'home'} />
+          <EditorPage active={page === 'editor'} />
+          <GalleryPage active={page === 'gallery'} />
+          <TemplatesPage active={page === 'templates'} />
+          <HistoryPage active={page === 'history'} />
+          <SettingsPage active={page === 'settings'} />
+          <HelpPage active={page === 'help'} />
+          <PreviewPage active={page === 'preview'} />
+        </main>
+      </div>
+      {railOpen ? <div className="rail-scrim" onClick={closeRail} aria-hidden="true" /> : null}
+      <Dialogs />
+      <TooltipLayer />
     </>
-  )
+  );
 }
 
-export default App
+/* First-run greeting — same message and kind as the prototype. */
+function WelcomeToast() {
+  const { notify } = useStudio();
+  useEffect(() => {
+    const t = window.setTimeout(() => notify('Selamat datang di Pin Print Studio.', 'info'), 220);
+    return () => window.clearTimeout(t);
+  }, [notify]);
+  return null;
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <StudioProvider>
+        <ErrorBoundary>
+          <Shell />
+          <WelcomeToast />
+        </ErrorBoundary>
+      </StudioProvider>
+    </ToastProvider>
+  );
+}
