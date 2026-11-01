@@ -64,6 +64,26 @@ const tryDownload = async (label, clickFn, ms = 30000) => {
   } catch (e) { console.log('NOTE ' + label + ' klik gagal: ' + String(e).split('\n')[0]); }
   return dl;
 };
+/* Posisi pin dibaca dari gaya inline (koordinat lembar, bukan piksel layar). */
+const posisiPin = async (sel) => page.locator(sel).first()
+  .evaluate((el) => el.style.left + ',' + el.style.top).catch(() => '');
+/* Geser pin dengan tetikus sungguhan, arahnya menuju tengah lembar supaya
+   tidak mentok di tepi kertas. */
+const geserPin = async (sel, jarak = 40) => {
+  const pinBox = await page.locator(sel).first().boundingBox().catch(() => null);
+  const sheetBox = await page.locator('#page-editor .sheet').first().boundingBox().catch(() => null);
+  if (!pinBox || !sheetBox) return false;
+  const fromX = pinBox.x + pinBox.width / 2;
+  const fromY = pinBox.y + pinBox.height / 2;
+  const dirX = Math.sign(sheetBox.x + sheetBox.width / 2 - fromX) || 1;
+  const dirY = Math.sign(sheetBox.y + sheetBox.height / 2 - fromY) || 1;
+  await page.mouse.move(fromX, fromY);
+  await page.mouse.down();
+  await page.mouse.move(fromX + dirX * jarak, fromY + dirY * jarak, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  return true;
+};
 
 await page.goto(BASE, { waitUntil: 'networkidle' });
 await page.waitForTimeout(800);
@@ -506,6 +526,94 @@ record(
   'sinkron: hapus satu dari dua pin menyisakan "Ditempatkan" 1 di layout',
   infoSisa.status === 'Ditempatkan' && infoSisa.layout.includes('1 di layout'),
   infoSisa.status + ' · ' + infoSisa.layout,
+);
+
+/* ══ Jalur H: saklar kunci posisi mengikuti pin terpilih (tiket 02) ══ */
+/* Proyek baru dipakai supaya pin bawaan yang terkunci (stiker daun hijau) pasti ada. */
+await nav('editor');
+await page.click("[data-od-id='btn-new-project']");
+await page.waitForTimeout(400);
+await page.fill('#np-name', 'E2E Kunci Posisi');
+await page.click('#dlg-new-project .dialog-foot .btn-primary');
+await page.waitForTimeout(600);
+/* Kamera kanvas bisa tergeser dari tahap sebelumnya; sesuaikan ke layar supaya
+   pin bawaan tidak tersembunyi di balik bilah alat. */
+await page.click('#zoom-fit');
+await page.waitForTimeout(500);
+
+const saklar = page.locator('#sw-lock');
+const saklarMenyala = async () => (await saklar.getAttribute('aria-checked')) === 'true';
+/* Toast menutupi panel selama ~3 detik dan bisa menghalangi klik, jadi tunggu dulu. */
+const tungguToast = async () => {
+  await page.waitForFunction(() => document.querySelectorAll('#toast-stack .toast').length === 0, null, { timeout: 8000 }).catch(() => {});
+};
+const tekanSaklar = async () => {
+  await tungguToast();
+  await saklar.click({ timeout: 8000 });
+  await page.waitForTimeout(350);
+};
+const pinKunciId = await page.locator('#page-editor .sheet .pin.is-locked').first()
+  .getAttribute('data-pin-id').catch(() => null);
+const pinKunciSel = pinKunciId ? `#page-editor .sheet .pin[data-pin-id="${pinKunciId}"]` : '#page-editor .sheet .pin.is-locked';
+record('kunci: pin bawaan yang terkunci ada di kanvas', Boolean(pinKunciId), String(pinKunciId));
+
+await tungguToast();
+await page.locator(pinKunciSel).first().click();
+await page.waitForTimeout(300);
+record('kunci: memilih pin terkunci menyalakan saklar', await saklarMenyala());
+
+await tekanSaklar();
+record(
+  'kunci: mematikan saklar membuka kunci pin',
+  !(await saklarMenyala()) && (await cnt(pinKunciSel + '.is-locked')) === 0,
+  'saklar=' + (await saklarMenyala()) + ', terkunci=' + (await cnt('#page-editor .sheet .pin.is-locked')),
+);
+
+const posBuka1 = await posisiPin(pinKunciSel);
+const geserBuka = await geserPin(pinKunciSel);
+const posBuka2 = await posisiPin(pinKunciSel);
+record('kunci: setelah dibuka pin bisa digeser di kanvas', geserBuka && posBuka2 !== posBuka1, posBuka1 + ' -> ' + posBuka2);
+
+await tekanSaklar();
+record(
+  'kunci: menyalakan saklar mengunci pin terpilih',
+  (await saklarMenyala()) && (await cnt(pinKunciSel + '.is-locked')) === 1,
+  'saklar=' + (await saklarMenyala()),
+);
+
+const posKunci1 = await posisiPin(pinKunciSel);
+const geserKunci = await geserPin(pinKunciSel);
+const posKunci2 = await posisiPin(pinKunciSel);
+record('kunci: pin terkunci tidak bergeser di kanvas', geserKunci && posKunci2 === posKunci1, posKunci1 + ' -> ' + posKunci2);
+await page.screenshot({ path: path.join(OUT, 'e2e-50-saklar-kunci.png') });
+
+/* Multi-seleksi dengan kunci campuran tampil mati; menekan saklar mengunci semua. */
+await tungguToast();
+await page.keyboard.down('Control');
+await page.locator('#page-editor .sheet .pin:not(.is-locked)').first().click();
+await page.keyboard.up('Control');
+await page.waitForTimeout(300);
+const terpilih = await page.locator('#page-editor .sheet .pin.is-selected').count();
+const terkunciSebelum = await cnt('#page-editor .sheet .pin.is-locked');
+record('kunci: multi-seleksi kunci campuran menampilkan saklar mati', terpilih === 2 && !(await saklarMenyala()), 'terpilih=' + terpilih);
+
+await tekanSaklar();
+record(
+  'kunci: menekan saklar mengunci semua pin terpilih',
+  (await saklarMenyala()) && (await cnt('#page-editor .sheet .pin.is-locked')) === terkunciSebelum + 1,
+  terkunciSebelum + ' -> ' + (await cnt('#page-editor .sheet .pin.is-locked')) + ' terkunci dari ' + terpilih + ' terpilih',
+);
+
+/* Jalur klik kanan juga harus mengubah saklar karena saklar diturunkan dari pin. */
+await tungguToast();
+await page.locator(pinKunciSel).first().click({ button: 'right' });
+await page.waitForTimeout(300);
+await page.locator("[data-od-id='ctx-lock']").click();
+await page.waitForTimeout(350);
+record(
+  'kunci: buka kunci lewat menu klik kanan mematikan saklar',
+  !(await saklarMenyala()) && (await cnt('#page-editor .sheet .pin.is-locked')) === 0,
+  'saklar=' + (await saklarMenyala()) + ', terkunci=' + (await cnt('#page-editor .sheet .pin.is-locked')),
 );
 
 record('nol pageerror / console error E2E', problems.length === 0, problems.slice(0, 4).join(' | '));
