@@ -60,10 +60,26 @@ const initialInspector = (() => {
 })();
 const initialZoom = store.get('zoom', 78);
 
+const initialAssets = store.get('assets', INITIAL_ASSETS);
+
+/* Pin bawaan dicocokkan ke berkasnya lewat label (nama tanpa ekstensi). Pin yang
+   tidak cocok dibiarkan tanpa rujukan dan tidak memengaruhi status apa pun. */
+function linkPinsToAssets(pages, assets) {
+  const byLabel = new Map(assets.map((a) => [String(a.name).replace(/\.[a-z0-9]+$/i, ''), a.id]));
+  return pages.map((page) => ({
+    ...page,
+    pins: page.pins.map((pin) => (pin.assetId
+      ? pin
+      : { ...pin, assetId: byLabel.get(pin.label) || null })),
+  }));
+}
+
 const initialPages = (() => {
   const saved = store.get('pages', null);
-  if (Array.isArray(saved) && saved.length && saved.every((p) => p && Array.isArray(p.pins))) return saved;
-  return PAGE_SEED;
+  if (Array.isArray(saved) && saved.length && saved.every((p) => p && Array.isArray(p.pins))) {
+    return linkPinsToAssets(saved, initialAssets);
+  }
+  return linkPinsToAssets(PAGE_SEED, initialAssets);
 })();
 
 const initialSheetPage = (() => {
@@ -72,7 +88,7 @@ const initialSheetPage = (() => {
   return Math.max(1, Math.min(initialPages.length, Math.round(saved)));
 })();
 
-const initialState = {
+const initialState = reconcileAssets({
   page: PAGE_TITLES[initialPage] ? initialPage : 'home',
   dialog: null,
   confirm: null,
@@ -87,7 +103,7 @@ const initialState = {
   sheetPage: initialSheetPage,
   assetQuery: '',
   cropQueue: [],
-  assets: store.get('assets', INITIAL_ASSETS),
+  assets: initialAssets,
   galleryCards: store.get('gallery', GALLERY_CARDS),
   presets: store.get('presets', PRESETS),
   projects: store.get('projects', HISTORY_ROWS),
@@ -102,7 +118,7 @@ const initialState = {
   lastSavedAt: store.get('savedAt', null),
   undoStack: [],
   redoStack: [],
-};
+});
 
 /* Everything the undo stack can restore. */
 function snapshot(state) {
@@ -144,7 +160,26 @@ function withPins(state, updater) {
   };
 }
 
-function reducer(state, action) {
+/* Status `placed`/`unplaced` dan angka `inLayout` dihitung ulang dari pin yang
+   benar-benar ada di semua halaman, bukan disimpan lalu disunting manual.
+   `locked` sengaja tidak disentuh — itu keputusan berkas, bukan akibat pin. */
+function reconcileAssets(state) {
+  const counts = new Map();
+  state.pages.forEach((page) => page.pins.forEach((pin) => {
+    if (pin.assetId) counts.set(pin.assetId, (counts.get(pin.assetId) || 0) + 1);
+  }));
+  let changed = false;
+  const assets = state.assets.map((asset) => {
+    const inLayout = counts.get(asset.id) || 0;
+    const status = asset.status === 'locked' ? 'locked' : inLayout > 0 ? 'placed' : 'unplaced';
+    if (asset.inLayout === inLayout && asset.status === status) return asset;
+    changed = true;
+    return { ...asset, status, inLayout };
+  });
+  return changed ? { ...state, assets } : state;
+}
+
+function baseReducer(state, action) {
   switch (action.type) {
     /* ── navigation / chrome ── */
     case 'nav':
@@ -322,7 +357,13 @@ function reducer(state, action) {
         : (state.selectedPinId ? [state.selectedPinId] : []);
       const set = new Set(ids);
       return withPins(state, (pins) => pins.map((pin) => (set.has(pin.id)
-        ? { ...pin, art: asset.art, icon: asset.icon, label: asset.name.replace(/\.[a-z0-9]+$/i, '') }
+        ? {
+          ...pin,
+          art: asset.art,
+          icon: asset.icon,
+          label: asset.name.replace(/\.[a-z0-9]+$/i, ''),
+          assetId: action.assetId || null,
+        }
         : pin)));
     }
     case 'setInspector':
@@ -391,13 +432,6 @@ function reducer(state, action) {
       return {
         ...state, toggles: DEFAULT_TOGGLES, zoom: 78, inspector: DEFAULT_INSPECTOR,
         settings: DEFAULT_SETTINGS, sheetPage: 1,
-      };
-    case 'markAssetsPlaced':
-      return {
-        ...state,
-        assets: state.assets.map((a) => (action.ids.includes(a.id)
-          ? { ...a, status: 'placed', inLayout: a.inLayout || 1 }
-          : a)),
       };
 
     /* ── gallery ── */
@@ -526,6 +560,12 @@ function reducer(state, action) {
     default:
       return state;
   }
+}
+
+/* Semua perubahan state lewat rekonsiliasi: tambah/hapus/duplikat pin, ganti
+   gambar, kosongkan halaman, undo/redo, dan restore ikut sinkron. */
+function reducer(state, action) {
+  return reconcileAssets(baseReducer(state, action));
 }
 
 export function StudioProvider({ children }) {
@@ -1210,7 +1250,6 @@ export function StudioProvider({ children }) {
           pages: current.pages.map((page, i) => (i === current.sheetPage - 1 ? { ...page, pins: [...page.pins, pin] } : page)),
           selectedPinId: pin.id,
         });
-        dispatch({ type: 'markAssetsPlaced', ids: [asset.id] });
         const q = current.cropQueue || [];
         dispatch({ type: 'setCropQueue', queue: q.slice(1) });
         touch();
@@ -1268,8 +1307,11 @@ export function StudioProvider({ children }) {
           toast('Pilih desain pada lembar terlebih dahulu.', 'err');
           return false;
         }
+        /* Galeri punya id sendiri; berkas asalnya dicari lewat id atau nama. */
+        const owner = state.assets.find((a) => a.id === asset.id)
+          || state.assets.find((a) => a.name === asset.name);
         pushHistory(state);
-        dispatch({ type: 'replaceSelectedPin', asset });
+        dispatch({ type: 'replaceSelectedPin', asset, assetId: owner ? owner.id : null });
         touch();
         commitSave();
         toast('Gambar pada desain terpilih diganti.', 'ok');

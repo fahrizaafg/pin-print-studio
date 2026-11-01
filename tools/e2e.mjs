@@ -24,7 +24,10 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'pin-e2e-'));
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAF0lEQVR42mP8z8AARQwMDAwMDAwMDAwMAK5cBGUARPntAAAAAElFTkSuQmCC';
 const pngPath = path.join(TMP, 'e2e-foto.png');
 const txtPath = path.join(TMP, 'e2e-catatan.txt');
+/* Berkas khusus tahap sinkronisasi status aset — nama unik agar mudah dicari di panel. */
+const syncPngPath = path.join(TMP, 'e2e-sinkron.png');
 fs.writeFileSync(pngPath, Buffer.from(PNG_B64, 'base64'));
+fs.writeFileSync(syncPngPath, Buffer.from(PNG_B64, 'base64'));
 fs.writeFileSync(txtPath, 'ini bukan gambar, hanya catatan\n');
 
 const OUT = path.resolve('tools/screenshots');
@@ -419,6 +422,91 @@ if (menuBtnVis) {
 }
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.waitForTimeout(300);
+
+/* ══ Jalur G: status berkas mengikuti isi kanvas (tiket 01) ══ */
+await nav('editor');
+await page.click("[data-od-id='btn-add-design']");
+await page.waitForTimeout(350);
+await page.setInputFiles('#upload-input', syncPngPath);
+await page.waitForTimeout(400);
+await page.click('#dlg-upload .dialog-foot .btn-primary');
+await page.waitForTimeout(800);
+const syncRow = page.locator('#asset-list .asset', { hasText: 'e2e-sinkron.png' }).first();
+const syncInfo = async () => ({
+  status: ((await syncRow.locator('.status').textContent().catch(() => '')) || '').replace(/\s+/g, ' ').trim(),
+  layout: ((await syncRow.locator('.asset-sub').last().textContent().catch(() => '')) || '').replace(/\s+/g, ' ').trim(),
+});
+/* Berkas berstatus "Terkunci" tetap "Terkunci" apa pun isi kanvas. */
+const lockedStatus = ((await page.locator('#asset-list .asset', { hasText: 'stiker-daun-hijau.png' })
+  .first().locator('.status').textContent().catch(() => '')) || '').trim();
+record('sinkron: berkas "Terkunci" tetap "Terkunci"', lockedStatus === 'Terkunci', lockedStatus);
+
+const infoAwal = await syncInfo();
+record(
+  'sinkron: berkas baru mulai "Belum Ditempatkan" dengan 0 di layout',
+  infoAwal.status === 'Belum Ditempatkan' && infoAwal.layout.includes('0 di layout'),
+  infoAwal.status + ' · ' + infoAwal.layout,
+);
+
+await page.click("[data-od-id='btn-deselect']");
+await page.waitForTimeout(200);
+await syncRow.click();
+await page.waitForTimeout(250);
+await page.click("[data-od-id='btn-add-to-layout']");
+await page.waitForTimeout(400);
+let gSync = 0;
+while ((await page.locator('#dlg-crop11.is-open').count()) > 0 && gSync < 10) {
+  await page.click("[data-od-id='btn-crop11-apply']");
+  await page.waitForTimeout(400);
+  gSync += 1;
+}
+const infoDitempatkan = await syncInfo();
+record(
+  'sinkron: tambah ke layout membuat berkas "Ditempatkan" 1 di layout',
+  infoDitempatkan.status === 'Ditempatkan' && infoDitempatkan.layout.includes('1 di layout'),
+  infoDitempatkan.status + ' · ' + infoDitempatkan.layout,
+);
+
+/* Pin hasil crop langsung terpilih setelah ditambahkan, jadi hapus lewat seleksi
+   (bukan klik kanvas: pin baru bertumpuk dengan pin lain di posisi awal). */
+const pinSync = await cnt('#page-editor .sheet .pin');
+await page.click("[data-od-id='btn-remove-layout']");
+await page.waitForTimeout(300);
+if (await isOpen('#dlg-confirm')) { await page.click('#confirm-ok'); await page.waitForTimeout(450); }
+const pinSyncAfter = await cnt('#page-editor .sheet .pin');
+const infoDihapus = await syncInfo();
+record(
+  'sinkron: hapus pin terakhir mengembalikan berkas ke "Belum Ditempatkan" dan 0 di layout',
+  pinSyncAfter === pinSync - 1
+    && infoDihapus.status === 'Belum Ditempatkan' && infoDihapus.layout.includes('0 di layout'),
+  pinSync + ' -> ' + pinSyncAfter + ' pin · ' + infoDihapus.status + ' · ' + infoDihapus.layout,
+);
+await page.screenshot({ path: path.join(OUT, 'e2e-40-sinkron-aset.png') });
+
+/* Undo hapus pin memulihkan status "Ditempatkan". */
+await page.keyboard.press('Control+z');
+await page.waitForTimeout(450);
+const infoUndo = await syncInfo();
+record(
+  'sinkron: undo hapus pin memulihkan "Ditempatkan" 1 di layout',
+  infoUndo.status === 'Ditempatkan' && infoUndo.layout.includes('1 di layout'),
+  infoUndo.status + ' · ' + infoUndo.layout,
+);
+
+/* Duplikat menambah hitungan; hapus satu dari dua menyisakan status "Ditempatkan". */
+await page.click("[data-od-id='btn-duplicate']");
+await page.waitForTimeout(450);
+const infoDup = await syncInfo();
+record('sinkron: duplikat pin menaikkan angka di layout jadi 2', infoDup.layout.includes('2 di layout'), infoDup.layout);
+await page.click("[data-od-id='btn-remove-layout']");
+await page.waitForTimeout(300);
+if (await isOpen('#dlg-confirm')) { await page.click('#confirm-ok'); await page.waitForTimeout(450); }
+const infoSisa = await syncInfo();
+record(
+  'sinkron: hapus satu dari dua pin menyisakan "Ditempatkan" 1 di layout',
+  infoSisa.status === 'Ditempatkan' && infoSisa.layout.includes('1 di layout'),
+  infoSisa.status + ' · ' + infoSisa.layout,
+);
 
 record('nol pageerror / console error E2E', problems.length === 0, problems.slice(0, 4).join(' | '));
 

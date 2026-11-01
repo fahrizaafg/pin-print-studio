@@ -113,6 +113,8 @@ export function makePin(source, index, art, icon, label, crop) {
     cropZoom: c.cropZoom ?? 100,
     rotate: 0,
     zoom: 100,
+    /* Rujukan ke berkas asal — dipakai menghitung status "Ditempatkan" di panel aset. */
+    assetId: source && source.id ? source.id : undefined,
     url: source && source.url ? source.url : undefined,
   };
 }
