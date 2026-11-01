@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStudio } from '../../state/StudioContext.jsx';
 import Sheet from './Sheet.jsx';
+import { clampZoom } from '../../lib/pinGeometry.js';
 
 const CHIPS = [
   { key: 'bleed', id: 'toggle-bleed', label: 'Bleed' },
@@ -9,8 +10,6 @@ const CHIPS = [
   { key: 'safe', id: 'toggle-safe', label: 'Safe Area' },
   { key: 'marks', id: 'toggle-marks', label: 'Tanda Potong' },
 ];
-
-const clampZoom = (v) => Math.max(25, Math.min(200, Math.round(v)));
 
 export default function CanvasArea() {
   const studio = useStudio();

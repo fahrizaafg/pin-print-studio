@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStudio } from '../../state/StudioContext.jsx';
 import { useSheetDrag } from '../../hooks/useSheetDrag.js';
 import { Icon } from '../ui/icons.jsx';
+import { artPctOf, filterOf } from '../../lib/pinGeometry.js';
 
 const CUT_MARKS = [
   { left: 14, top: 14 },
@@ -153,21 +154,8 @@ export default function Sheet({ sheetRef }) {
   const sheetH = sheetSize?.h || 877;
   const marginPx = Math.max(0, Math.round((Number(inspector?.margin) || 0) * (620 / 297)));
   const bleedPx = Math.max(0, Math.round((Number(inspector?.bleed) || 0) * (620 / 297)));
-  const cutMm = Number(inspector?.cutSizeMm ?? inspector?.diameter) || 57;
-  const photoMm = Number(inspector?.photoSizeMm) || 47;
-  const artPct = Math.max(30, Math.min(100, (photoMm / Math.max(1, cutMm)) * 100));
+  const artPct = artPctOf(inspector);
   const cutCls = inspector?.cutStyle === 'dashed' ? 'cut-dashed' : 'cut-solid';
-
-  const filterOf = (pin) => {
-    const b = Number(pin.brightness) || 0;
-    const c = Number(pin.contrast ?? 10);
-    const s = Number(pin.saturation ?? 0);
-    const parts = [];
-    if (b) parts.push(`brightness(${100 + b}%)`);
-    if (c !== 10) parts.push(`contrast(${100 + (c - 10)}%)`);
-    if (s) parts.push(`saturate(${100 + s}%)`);
-    return parts.length ? parts.join(' ') : undefined;
-  };
 
   return (
     <div

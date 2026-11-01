@@ -3,8 +3,7 @@ import { useStudio } from '../../state/StudioContext.jsx';
 import { Icon } from '../ui/icons.jsx';
 import { PAPER_LABEL, PAPER_MM } from '../../data/studioData.js';
 import { formatLength } from '../../lib/format.js';
-
-const clampZoom = (v) => Math.max(25, Math.min(200, Math.round(v)));
+import { artPctOf, clampZoom, filterOf } from '../../lib/pinGeometry.js';
 
 function paperName(inspector) {
   if (inspector.paper === 'custom') {
@@ -43,23 +42,10 @@ export default function PreviewPage({ active }) {
   const remaining = Math.round(100 - efficiency);
 
   /* Same geometry as the editor sheet. */
-  const cutMm = Number(inspector?.cutSizeMm ?? inspector?.diameter) || 57;
-  const photoMm = Number(inspector?.photoSizeMm) || 47;
-  const artPct = Math.max(30, Math.min(100, (photoMm / Math.max(1, cutMm)) * 100));
+  const artPct = artPctOf(inspector);
   const cutCls = inspector?.cutStyle === 'dashed' ? 'cut-dashed' : 'cut-solid';
   const sheetW = sheetSize?.w || 620;
   const sheetH = sheetSize?.h || 877;
-
-  const filterOf = (pin) => {
-    const b = Number(pin.brightness) || 0;
-    const c = Number(pin.contrast ?? 10) || 0;
-    const s = Number(pin.saturation) || 0;
-    const parts = [];
-    if (b) parts.push(`brightness(${100 + b}%)`);
-    if (c !== 10) parts.push(`contrast(${100 + (c - 10)}%)`);
-    if (s) parts.push(`saturate(${100 + s}%)`);
-    return parts.length ? parts.join(' ') : undefined;
-  };
 
   /* Local zoom + pan: preview never scrolls, the sheet scales instead. */
   const [zoom, setZoomLocal] = useState(78);

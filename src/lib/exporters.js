@@ -1,6 +1,7 @@
 /* Real exporters: the sheet is rasterised on a canvas and turned into PNG,
    JPEG-backed PDF pages, or a printable document. No external libraries. */
 import { PAPER_MM } from '../data/studioData.js';
+import { filterOf } from './pinGeometry.js';
 
 /* The sheet is authored at 620 x 877 px for an A3 portrait page. */
 export const SHEET_W = 620;
@@ -74,16 +75,6 @@ function loadImage(url) {
   return job;
 }
 
-function filterOf(pin) {
-  const b = Number(pin.brightness) || 0;
-  const c = Number(pin.contrast ?? 10);
-  const s = Number(pin.saturation) || 0;
-  const parts = [];
-  if (b) parts.push(`brightness(${100 + b}%)`);
-  if (c !== 10) parts.push(`contrast(${100 + (c - 10)}%)`);
-  if (s) parts.push(`saturate(${100 + s}%)`);
-  return parts.length ? parts.join(' ') : 'none';
-}
 
 /* Draw the photo image clipped to a circle.
    Mirrors the editor: cover when pin.crop is on, contain otherwise,
