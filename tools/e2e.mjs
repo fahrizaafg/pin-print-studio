@@ -616,6 +616,82 @@ record(
   'saklar=' + (await saklarMenyala()) + ', terkunci=' + (await cnt('#page-editor .sheet .pin.is-locked')),
 );
 
+/* ══ Jalur I: kunci tidak bisa dilewati panel kanan (tiket 03) ══ */
+/* Proyek baru lagi supaya posisi pin bawaan (termasuk yang terkunci) masih rapi
+   di grid awal dan tidak bertumpuk akibat tahap sebelumnya. */
+await nav('editor');
+await page.click("[data-od-id='btn-new-project']");
+await page.waitForTimeout(400);
+await page.fill('#np-name', 'E2E Kunci Panel');
+await page.click('#dlg-new-project .dialog-foot .btn-primary');
+await page.waitForTimeout(600);
+await page.click('#zoom-fit');
+await page.waitForTimeout(500);
+await tungguToast();
+
+const pinPanelId = await page.locator('#page-editor .sheet .pin.is-locked').first()
+  .getAttribute('data-pin-id').catch(() => null);
+const pinPanelSel = pinPanelId ? `#page-editor .sheet .pin[data-pin-id="${pinPanelId}"]` : '#page-editor .sheet .pin.is-locked';
+record('panel: pin bawaan terkunci siap diuji', Boolean(pinPanelId), String(pinPanelId));
+
+/* Kolom posisi harus menolak memindahkan pin terkunci dan memberi tahu pengguna. */
+await page.locator(pinPanelSel).first().click();
+await page.waitForTimeout(300);
+const posPanel1 = await posisiPin(pinPanelSel);
+const xPanel = Number((posPanel1.split(',')[0] || '').replace(/[^0-9.-]/g, '')) || 60;
+await page.fill('#in-pos-x', String(xPanel + 120));
+await page.dispatchEvent('#in-pos-x', 'change');
+await page.waitForTimeout(400);
+const posPanel2 = await posisiPin(pinPanelSel);
+const toastPanel = await txt('#toast-stack');
+record('panel: kolom posisi tidak memindahkan pin terkunci', posPanel2 === posPanel1, posPanel1 + ' -> ' + posPanel2);
+record('panel: penolakan kolom posisi memberi pesan jelas', /terkunci/i.test(toastPanel), toastPanel.slice(0, 80));
+
+/* Pin bebas tetap bisa digeser lewat kolom posisi. */
+await tungguToast();
+const pinBebasSel = '#page-editor .sheet .pin:not(.is-locked)';
+await page.locator(pinBebasSel).first().click();
+await page.waitForTimeout(300);
+const posBebas1 = await posisiPin(pinBebasSel);
+const xBebas = Number((posBebas1.split(',')[0] || '').replace(/[^0-9.-]/g, '')) || 60;
+await page.fill('#in-pos-x', String(xBebas + 120));
+await page.dispatchEvent('#in-pos-x', 'change');
+await page.waitForTimeout(400);
+const posBebas2 = await posisiPin(pinBebasSel);
+record('panel: kolom posisi memindahkan pin yang tidak terkunci', posBebas2 !== posBebas1, posBebas1 + ' -> ' + posBebas2);
+
+/* Ratakan ke grid: pin terkunci tetap, pin bebas ikut ditata.
+   Ukuran potong diubah dulu supaya grid benar-benar menata ulang (kalau tidak,
+   pin bawaan sudah berada di slot grid dan pemeriksaan jadi tidak bermakna). */
+await tungguToast();
+await page.fill('#in-cut', '44');
+await page.dispatchEvent('#in-cut', 'change');
+await page.waitForTimeout(250);
+await page.click("[data-od-id='btn-apply-settings']");
+await page.waitForTimeout(500);
+const posKunciGrid = await posisiPin(pinPanelSel);
+const posBebas3 = await posisiPin(pinBebasSel);
+record('panel: ratakan ke grid tidak memindahkan pin terkunci', posKunciGrid === posPanel1, posPanel1 + ' -> ' + posKunciGrid);
+record('panel: ratakan ke grid menata pin yang tidak terkunci', posBebas3 !== posBebas2, posBebas2 + ' -> ' + posBebas3);
+await page.screenshot({ path: path.join(OUT, 'e2e-60-kunci-panel.png') });
+
+/* Setelah kunci dibuka, kolom posisi bekerja normal lagi. */
+await tungguToast();
+await page.locator(pinPanelSel).first().click();
+await page.waitForTimeout(300);
+await tekanSaklar();
+const posPnlBuka1 = await posisiPin(pinPanelSel);
+const xBuka = Number((posPnlBuka1.split(',')[0] || '').replace(/[^0-9.-]/g, '')) || 60;
+await page.fill('#in-pos-x', String(xBuka + 120));
+await page.dispatchEvent('#in-pos-x', 'change');
+await page.waitForTimeout(400);
+const posPnlBuka2 = await posisiPin(pinPanelSel);
+record(
+  'panel: setelah kunci dibuka kolom posisi bekerja normal',
+  posPnlBuka2 !== posPnlBuka1,
+  posPnlBuka1 + ' -> ' + posPnlBuka2 + ' (saklar=' + (await saklarMenyala()) + ')',
+);
+
 record('nol pageerror / console error E2E', problems.length === 0, problems.slice(0, 4).join(' | '));
 
 await browser.close();

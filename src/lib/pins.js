@@ -69,8 +69,10 @@ export function freePackingCells(pins, inspector, sheetPx, pinSize) {
   return { grid, cells };
 }
 
-/* Re-flow the pins of the open page into a rows x cols grid. */
-export function gridPins(pins, inspector, mode) {
+/* Re-flow the pins of the open page into a rows x cols grid.
+   `keepLocked` (perataan massal) membiarkan pin terkunci persis di tempatnya,
+   lubang slotnya tidak diisi pin lain. */
+export function gridPins(pins, inspector, mode, keepLocked) {
   const cutMm = cutMmOf(inspector);
   const gap = Number(inspector.gap) || 0;
   const margin = Number(inspector.margin) || 0;
@@ -84,12 +86,15 @@ export function gridPins(pins, inspector, mode) {
   const totalH = rows * cell - gap * MM_TO_PX;
   const startX = mode === 'center' ? Math.max(8, Math.round((sheetW - totalW) / 2)) : origin;
   const startY = mode === 'center' ? Math.max(8, Math.round((sheetH - totalH) / 2)) : origin;
-  return pins.map((pin, index) => ({
-    ...pin,
-    size,
-    x: Math.round(startX + (index % cols) * cell),
-    y: Math.round(startY + Math.floor(index / cols) * cell),
-  }));
+  return pins.map((pin, index) => {
+    if (keepLocked && pin.locked) return pin;
+    return {
+      ...pin,
+      size,
+      x: Math.round(startX + (index % cols) * cell),
+      y: Math.round(startY + Math.floor(index / cols) * cell),
+    };
+  });
 }
 
 export function paperLabelOf(paper) {

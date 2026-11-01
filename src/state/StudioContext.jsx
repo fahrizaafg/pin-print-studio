@@ -340,12 +340,18 @@ function baseReducer(state, action) {
     }
     case 'updateSelectedPin': {
       const patch = action.patch;
+      const tanpaPosisi = { ...patch };
+      delete tanpaPosisi.x;
+      delete tanpaPosisi.y;
+      const adaPosisi = 'x' in patch || 'y' in patch;
       const ids = state.selectedPinIds && state.selectedPinIds.length
         ? state.selectedPinIds
         : (state.selectedPinId ? [state.selectedPinId] : []);
       const set = new Set(ids);
+      /* Pin terkunci: posisi ditahan di semua jalur (kolom posisi, pusatkan/reset
+         gambar, terapkan ke desain). Medan lain tetap boleh berubah. */
       return withPins(state, (pins) => pins.map(
-        (pin) => (set.has(pin.id) ? { ...pin, ...patch } : pin),
+        (pin) => (set.has(pin.id) ? { ...pin, ...(pin.locked && adaPosisi ? tanpaPosisi : patch) } : pin),
       ));
     }
     case 'setCropQueue':
@@ -383,9 +389,9 @@ function baseReducer(state, action) {
       };
     }
     case 'applyInspector':
-      return withPins(state, (pins) => gridPins(pins, state.inspector, 'origin'));
+      return withPins(state, (pins) => gridPins(pins, state.inspector, 'origin', true));
     case 'centerLayout':
-      return withPins(state, (pins) => gridPins(pins, state.inspector, 'center'));
+      return withPins(state, (pins) => gridPins(pins, state.inspector, 'center', true));
     case 'resetLayout':
       return syncPrimary({
         ...state,
@@ -982,9 +988,17 @@ export function StudioProvider({ children }) {
           : 'Hanya ' + n + ' yang muat — sisa ruang kertas habis.', n === want ? 'ok' : 'info');
       },
       setInspector: (patch) => {
+        const selId = stateRef.current.selectedPinId;
+        const selPin = selId ? activePins(stateRef.current).find((p) => p.id === selId) : null;
+        /* Pin terkunci tidak bisa dipindah dari kolom posisi. Beri tahu pengguna
+           dan kembalikan isi kolom ke posisi asli pin. */
+        if (selPin && selPin.locked && (patch.posX !== undefined || patch.posY !== undefined)) {
+          toast('Desain terkunci — buka kunci untuk memindahkan posisi.', 'err');
+          dispatch({ type: 'setInspector', patch: { posX: selPin.x, posY: selPin.y } });
+          return;
+        }
         const nextInspector = { ...stateRef.current.inspector, ...patch };
         dispatch({ type: 'setInspector', patch });
-        const selId = stateRef.current.selectedPinId;
         if (selId) {
           const live = {};
           if (patch.rotate !== undefined) live.rotate = Number(patch.rotate) || 0;
@@ -1016,7 +1030,9 @@ export function StudioProvider({ children }) {
         dispatch({ type: 'applyInspector' });
         touch();
         commitSave();
-        toast('Pengaturan diterapkan ke layout.', 'ok');
+        toast(pins.some((p) => p.locked)
+          ? 'Layout dirapikan; pin terkunci tidak dipindahkan.'
+          : 'Pengaturan diterapkan ke layout.', 'ok');
       },
       applySelected: () => {
         if (!state.selectedPinId) {
