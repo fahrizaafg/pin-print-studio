@@ -51,7 +51,7 @@ export default function Rail() {
   return (
     <aside className={'rail' + (railOpen ? ' is-open' : '')} id="rail" data-od-id="app-rail">
       <div className="rail-brand">
-        <div className="rail-mark" aria-hidden="true">P</div>
+        <img className="rail-logo" src="/logo-grandcom.png" alt="Grandcom" />
         <div className="rail-brand-text">
           <div className="rail-title">Pin Print Studio</div>
           <div className="rail-sub" id="rail-project-name">{projectName}</div>
