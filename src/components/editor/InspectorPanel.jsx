@@ -13,6 +13,11 @@ export default function InspectorPanel() {
   const multi = ids.length > 1;
   const selected = ids.length > 0;
   const cropActive = !multi && Boolean(pins.find((p) => p.id === selectedPinId)?.crop);
+  /* Keadaan saklar diturunkan dari pin yang dipilih (menyala hanya bila semua
+     terkunci). `inspector.lock` cuma nilai awal saat tidak ada pin terpilih. */
+  const lockOn = selected
+    ? ids.every((id) => Boolean(pins.find((p) => p.id === id)?.locked))
+    : Boolean(inspector.lock);
 
   return (
     <aside className={`panel panel-r${panelRightOpen ? ' is-open' : ''}`} id="panel-r" data-od-id="panel-inspector" aria-label="Pengaturan desain">
@@ -153,12 +158,12 @@ export default function InspectorPanel() {
             </div>
             <button
               type="button"
-              className={`switch${inspector.lock ? ' is-on' : ''}`}
+              className={`switch${lockOn ? ' is-on' : ''}`}
               id="sw-lock"
               data-od-id="sw-lock"
               role="switch"
-              aria-checked={Boolean(inspector.lock)}
-              onClick={() => setLock(!inspector.lock)}
+              aria-checked={lockOn}
+              onClick={() => setLock(!lockOn)}
             />
           </div>
         </details>

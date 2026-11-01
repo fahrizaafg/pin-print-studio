@@ -60,10 +60,28 @@ const initialInspector = (() => {
 })();
 const initialZoom = store.get('zoom', 78);
 
+const initialAssets = store.get('assets', INITIAL_ASSETS);
+
+/* Pin bawaan dicocokkan ke berkasnya lewat label (nama tanpa ekstensi). Pin yang
+   tidak cocok dibiarkan tanpa rujukan dan tidak memengaruhi status apa pun.
+   Rujukan yang menunjuk berkas tak dikenal (proyek/backup lama) dicocokkan ulang. */
+function linkPinsToAssets(pages, assets) {
+  const byLabel = new Map(assets.map((a) => [String(a.name).replace(/\.[a-z0-9]+$/i, ''), a.id]));
+  const known = new Set(assets.map((a) => a.id));
+  return pages.map((page) => ({
+    ...page,
+    pins: page.pins.map((pin) => (known.has(pin.assetId)
+      ? pin
+      : { ...pin, assetId: byLabel.get(pin.label) || null })),
+  }));
+}
+
 const initialPages = (() => {
   const saved = store.get('pages', null);
-  if (Array.isArray(saved) && saved.length && saved.every((p) => p && Array.isArray(p.pins))) return saved;
-  return PAGE_SEED;
+  if (Array.isArray(saved) && saved.length && saved.every((p) => p && Array.isArray(p.pins))) {
+    return linkPinsToAssets(saved, initialAssets);
+  }
+  return linkPinsToAssets(PAGE_SEED, initialAssets);
 })();
 
 const initialSheetPage = (() => {
@@ -72,7 +90,7 @@ const initialSheetPage = (() => {
   return Math.max(1, Math.min(initialPages.length, Math.round(saved)));
 })();
 
-const initialState = {
+const initialState = reconcileAssets({
   page: PAGE_TITLES[initialPage] ? initialPage : 'home',
   dialog: null,
   confirm: null,
@@ -87,7 +105,7 @@ const initialState = {
   sheetPage: initialSheetPage,
   assetQuery: '',
   cropQueue: [],
-  assets: store.get('assets', INITIAL_ASSETS),
+  assets: initialAssets,
   galleryCards: store.get('gallery', GALLERY_CARDS),
   presets: store.get('presets', PRESETS),
   projects: store.get('projects', HISTORY_ROWS),
@@ -102,7 +120,7 @@ const initialState = {
   lastSavedAt: store.get('savedAt', null),
   undoStack: [],
   redoStack: [],
-};
+});
 
 /* Everything the undo stack can restore. */
 function snapshot(state) {
@@ -144,7 +162,35 @@ function withPins(state, updater) {
   };
 }
 
-function reducer(state, action) {
+/* Mengganti ukuran/kertas menggeser koordinat lembar, jadi pin terkunci ikut
+   ditata ulang. Mengubah margin/jarak/baris/kolom hanya menata posisi. */
+function gantiKertas(next, prev) {
+  return next.paper !== prev.paper
+    || next.orientation !== prev.orientation
+    || next.customWidth !== prev.customWidth
+    || next.customHeight !== prev.customHeight;
+}
+
+/* Status `placed`/`unplaced` dan angka `inLayout` dihitung ulang dari pin yang
+   benar-benar ada di semua halaman, bukan disimpan lalu disunting manual.
+   `locked` sengaja tidak disentuh — itu keputusan berkas, bukan akibat pin. */
+function reconcileAssets(state) {
+  const counts = new Map();
+  state.pages.forEach((page) => page.pins.forEach((pin) => {
+    if (pin.assetId) counts.set(pin.assetId, (counts.get(pin.assetId) || 0) + 1);
+  }));
+  let changed = false;
+  const assets = state.assets.map((asset) => {
+    const inLayout = counts.get(asset.id) || 0;
+    const status = asset.status === 'locked' ? 'locked' : inLayout > 0 ? 'placed' : 'unplaced';
+    if (asset.inLayout === inLayout && asset.status === status) return asset;
+    changed = true;
+    return { ...asset, status, inLayout };
+  });
+  return changed ? { ...state, assets } : state;
+}
+
+function baseReducer(state, action) {
   switch (action.type) {
     /* ── navigation / chrome ── */
     case 'nav':
@@ -189,7 +235,7 @@ function reducer(state, action) {
     case 'replacePages':
       return syncPrimary({
         ...state,
-        pages: action.pages,
+        pages: linkPinsToAssets(action.pages, state.assets),
         sheetPage: Math.min(Math.max(state.sheetPage, 1), action.pages.length),
         selectedPinIds: action.selectedPinId !== undefined
           ? (action.selectedPinId ? [action.selectedPinId] : [])
@@ -305,12 +351,18 @@ function reducer(state, action) {
     }
     case 'updateSelectedPin': {
       const patch = action.patch;
+      const patchTanpaPosisi = { ...patch };
+      delete patchTanpaPosisi.x;
+      delete patchTanpaPosisi.y;
+      const mengubahPosisi = 'x' in patch || 'y' in patch;
       const ids = state.selectedPinIds && state.selectedPinIds.length
         ? state.selectedPinIds
         : (state.selectedPinId ? [state.selectedPinId] : []);
       const set = new Set(ids);
+      /* Pin terkunci: posisi ditahan di semua jalur (kolom posisi, pusatkan/reset
+         gambar, terapkan ke desain). Medan lain tetap boleh berubah. */
       return withPins(state, (pins) => pins.map(
-        (pin) => (set.has(pin.id) ? { ...pin, ...patch } : pin),
+        (pin) => (set.has(pin.id) ? { ...pin, ...(pin.locked && mengubahPosisi ? patchTanpaPosisi : patch) } : pin),
       ));
     }
     case 'setCropQueue':
@@ -322,7 +374,13 @@ function reducer(state, action) {
         : (state.selectedPinId ? [state.selectedPinId] : []);
       const set = new Set(ids);
       return withPins(state, (pins) => pins.map((pin) => (set.has(pin.id)
-        ? { ...pin, art: asset.art, icon: asset.icon, label: asset.name.replace(/\.[a-z0-9]+$/i, '') }
+        ? {
+          ...pin,
+          art: asset.art,
+          icon: asset.icon,
+          label: asset.name.replace(/\.[a-z0-9]+$/i, ''),
+          assetId: action.assetId || null,
+        }
         : pin)));
     }
     case 'setInspector':
@@ -342,9 +400,9 @@ function reducer(state, action) {
       };
     }
     case 'applyInspector':
-      return withPins(state, (pins) => gridPins(pins, state.inspector, 'origin'));
+      return withPins(state, (pins) => gridPins(pins, state.inspector, 'origin', true));
     case 'centerLayout':
-      return withPins(state, (pins) => gridPins(pins, state.inspector, 'center'));
+      return withPins(state, (pins) => gridPins(pins, state.inspector, 'center', true));
     case 'resetLayout':
       return syncPrimary({
         ...state,
@@ -391,13 +449,6 @@ function reducer(state, action) {
       return {
         ...state, toggles: DEFAULT_TOGGLES, zoom: 78, inspector: DEFAULT_INSPECTOR,
         settings: DEFAULT_SETTINGS, sheetPage: 1,
-      };
-    case 'markAssetsPlaced':
-      return {
-        ...state,
-        assets: state.assets.map((a) => (action.ids.includes(a.id)
-          ? { ...a, status: 'placed', inLayout: a.inLayout || 1 }
-          : a)),
       };
 
     /* ── gallery ── */
@@ -526,6 +577,12 @@ function reducer(state, action) {
     default:
       return state;
   }
+}
+
+/* Semua perubahan state lewat rekonsiliasi: tambah/hapus/duplikat pin, ganti
+   gambar, kosongkan halaman, undo/redo, dan restore ikut sinkron. */
+function reducer(state, action) {
+  return reconcileAssets(baseReducer(state, action));
 }
 
 export function StudioProvider({ children }) {
@@ -942,9 +999,24 @@ export function StudioProvider({ children }) {
           : 'Hanya ' + n + ' yang muat — sisa ruang kertas habis.', n === want ? 'ok' : 'info');
       },
       setInspector: (patch) => {
-        const nextInspector = { ...stateRef.current.inspector, ...patch };
+        const current = stateRef.current;
+        const ids = current.selectedPinIds && current.selectedPinIds.length
+          ? current.selectedPinIds
+          : (current.selectedPinId ? [current.selectedPinId] : []);
+        /* Pin terkunci tidak bisa dipindah dari kolom posisi. Penyaringan per pin
+           ada di reducer; di sini hanya memberi tahu bila tak ada yang bisa pindah. */
+        if ((patch.posX !== undefined || patch.posY !== undefined) && ids.length) {
+          const terpilih = activePins(current).filter((pin) => ids.includes(pin.id));
+          if (terpilih.length && terpilih.every((pin) => pin.locked)) {
+            const utama = terpilih[0];
+            toast('Desain terkunci — buka kunci untuk memindahkan posisi.', 'err');
+            dispatch({ type: 'setInspector', patch: { posX: utama.x, posY: utama.y } });
+            return;
+          }
+        }
+        const selId = current.selectedPinId;
+        const nextInspector = { ...current.inspector, ...patch };
         dispatch({ type: 'setInspector', patch });
-        const selId = stateRef.current.selectedPinId;
         if (selId) {
           const live = {};
           if (patch.rotate !== undefined) live.rotate = Number(patch.rotate) || 0;
@@ -956,9 +1028,13 @@ export function StudioProvider({ children }) {
         }
         const layoutKeys = ['paper', 'orientation', 'margin', 'gap', 'rows', 'cols', 'customWidth', 'customHeight'];
         if (Object.keys(patch).some((k) => layoutKeys.includes(k))) {
-          const current = stateRef.current;
           const idx = Math.min(Math.max(current.sheetPage, 1), current.pages.length) - 1;
-          const newPins = gridPins(current.pages[idx]?.pins || [], nextInspector, 'origin');
+          const newPins = gridPins(
+            current.pages[idx]?.pins || [],
+            nextInspector,
+            'origin',
+            !gantiKertas(nextInspector, current.inspector),
+          );
           const keepId = current.selectedPinId && newPins.some((p) => p.id === current.selectedPinId)
             ? current.selectedPinId
             : null;
@@ -976,10 +1052,13 @@ export function StudioProvider({ children }) {
         dispatch({ type: 'applyInspector' });
         touch();
         commitSave();
-        toast('Pengaturan diterapkan ke layout.', 'ok');
+        toast(pins.some((p) => p.locked)
+          ? 'Layout dirapikan; pin terkunci tidak dipindahkan.'
+          : 'Pengaturan diterapkan ke layout.', 'ok');
       },
       applySelected: () => {
-        if (!state.selectedPinId) {
+        const pin = pins.find((p) => p.id === state.selectedPinId);
+        if (!pin) {
           toast('Pilih desain pada lembar terlebih dahulu.', 'err');
           return;
         }
@@ -995,7 +1074,10 @@ export function StudioProvider({ children }) {
         });
         touch();
         commitSave();
-        toast('Pengaturan diterapkan ke 1 desain terpilih.', 'ok');
+        /* Posisi pin terkunci dibuang reducer — jangan bilang "diterapkan". */
+        toast(pin.locked
+          ? 'Desain terkunci — posisi tidak diubah. Buka kunci untuk memindahkannya.'
+          : 'Pengaturan diterapkan ke 1 desain terpilih.', pin.locked ? 'err' : 'ok');
       },
       applySelectedImage: (patch) => {
         if (!state.selectedPinId) {
@@ -1122,9 +1204,7 @@ export function StudioProvider({ children }) {
             id: 'a' + Date.now().toString(36) + i,
             name: file.name,
             meta: ext + ' · ' + (size.width ? size.width + '×' + size.height : Math.max(1, Math.round(file.size / 1024)) + ' KB'),
-            status: opts.toLayout ? 'placed' : 'unplaced',
             order: 10 + i,
-            inLayout: opts.toLayout ? 1 : 0,
             art,
             icon,
             selected: false,
@@ -1210,7 +1290,6 @@ export function StudioProvider({ children }) {
           pages: current.pages.map((page, i) => (i === current.sheetPage - 1 ? { ...page, pins: [...page.pins, pin] } : page)),
           selectedPinId: pin.id,
         });
-        dispatch({ type: 'markAssetsPlaced', ids: [asset.id] });
         const q = current.cropQueue || [];
         dispatch({ type: 'setCropQueue', queue: q.slice(1) });
         touch();
@@ -1258,9 +1337,10 @@ export function StudioProvider({ children }) {
         toast(checked.length + ' desain ditambahkan ke proyek aktif.', 'ok');
       },
       replaceSelectedWithAsset: (assetId) => {
-        const asset = state.galleryCards.find((c) => c.id === assetId)
+        /* Galeri punya id sendiri; berkas asalnya dicari lewat id atau nama. */
+        const berkas = state.galleryCards.find((c) => c.id === assetId)
           || state.assets.find((a) => a.id === assetId);
-        if (!asset) {
+        if (!berkas) {
           toast('Pilih gambar pengganti terlebih dahulu.', 'err');
           return false;
         }
@@ -1268,8 +1348,9 @@ export function StudioProvider({ children }) {
           toast('Pilih desain pada lembar terlebih dahulu.', 'err');
           return false;
         }
+        const owner = state.assets.find((a) => a.id === berkas.id || a.name === berkas.name);
         pushHistory(state);
-        dispatch({ type: 'replaceSelectedPin', asset });
+        dispatch({ type: 'replaceSelectedPin', asset: berkas, assetId: owner ? owner.id : null });
         touch();
         commitSave();
         toast('Gambar pada desain terpilih diganti.', 'ok');
@@ -1281,12 +1362,13 @@ export function StudioProvider({ children }) {
         const preset = state.presets.find((p) => p.id === id);
         if (!preset) return;
         const geometry = preset.geometry || {};
+        const nextInspector = { ...state.inspector, ...geometry };
         pushHistory(state);
         dispatch({ type: 'setInspector', patch: { ...geometry } });
         dispatch({
           type: 'replacePages',
           pages: state.pages.map((page, i) => (i === currentPage - 1
-            ? { ...page, pins: gridPins(page.pins, { ...state.inspector, ...geometry }, 'origin') }
+            ? { ...page, pins: gridPins(page.pins, nextInspector, 'origin', !gantiKertas(nextInspector, state.inspector)) }
             : page)),
         });
         dispatch({ type: 'nav', page: 'editor', railOpen: false, dialog: null });
@@ -1566,12 +1648,14 @@ export function StudioProvider({ children }) {
           return false;
         }
         pushHistory(state);
-        dispatch({ type: 'replacePages', pages: payload.pages, selectedPinId: null });
-        if (payload.inspector) dispatch({ type: 'setInspector', patch: payload.inspector });
-        if (payload.project) dispatch({ type: 'renameProject', name: payload.project });
+        /* Koleksi backup dipasang lebih dulu supaya pelink-an pin memakai berkas
+           dari backup, bukan daftar berkas proyek sebelumnya. */
         if (Array.isArray(payload.assets) || Array.isArray(payload.gallery)) {
           dispatch({ type: 'replaceCollections', assets: payload.assets, galleryCards: payload.gallery });
         }
+        dispatch({ type: 'replacePages', pages: payload.pages, selectedPinId: null });
+        if (payload.inspector) dispatch({ type: 'setInspector', patch: payload.inspector });
+        if (payload.project) dispatch({ type: 'renameProject', name: payload.project });
         if (payload.settings) {
           dispatch({ type: 'setSettings', patch: payload.settings });
         }

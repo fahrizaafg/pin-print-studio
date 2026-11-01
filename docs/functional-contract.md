@@ -23,7 +23,7 @@ versions, inspector, settings, settingsTab, previewDpi, previewPage, stats, save
 lastSavedAt, undoStack, redoStack, exportProgress, backupProgress`
 
 - `pins` = pin halaman aktif. `sheetTotal` = jumlah halaman. `sheetPage` = 1..sheetTotal.
-- `pages` = `[{ id, pins: [{ id, x, y, size, art, icon, label, locked, crop, rotate, zoom }] }]`
+- `pages` = `[{ id, pins: [{ id, x, y, size, art, icon, label, assetId?, locked, crop, rotate, zoom }] }]`
 - `assets` = `[{ id, name, meta, status:'placed'|'unplaced'|'locked', order, inLayout, art, icon, selected, url? }]`
 - `galleryCards` = `[{ id, name, format, size, art, icon, checked, selected, status, url? }]`
 - `presets` = `[{ id, badge:{kind:'pill'|'tag',text}, meta, title, body, confirm, builtin, geometry:{paper,orientation,diameter,rows,cols,gap,margin,bleed} }]`

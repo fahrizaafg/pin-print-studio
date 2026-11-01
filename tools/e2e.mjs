@@ -24,7 +24,13 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'pin-e2e-'));
 const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAF0lEQVR42mP8z8AARQwMDAwMDAwMDAwMAK5cBGUARPntAAAAAElFTkSuQmCC';
 const pngPath = path.join(TMP, 'e2e-foto.png');
 const txtPath = path.join(TMP, 'e2e-catatan.txt');
+/* Berkas khusus tahap sinkronisasi status aset — nama unik agar mudah dicari di panel. */
+const syncPngPath = path.join(TMP, 'e2e-sinkron.png');
+/* Berkas kedua untuk jalur ganti gambar / halaman lain. */
+const syncPng2Path = path.join(TMP, 'e2e-sinkron2.png');
 fs.writeFileSync(pngPath, Buffer.from(PNG_B64, 'base64'));
+fs.writeFileSync(syncPngPath, Buffer.from(PNG_B64, 'base64'));
+fs.writeFileSync(syncPng2Path, Buffer.from(PNG_B64, 'base64'));
 fs.writeFileSync(txtPath, 'ini bukan gambar, hanya catatan\n');
 
 const OUT = path.resolve('tools/screenshots');
@@ -60,6 +66,26 @@ const tryDownload = async (label, clickFn, ms = 30000) => {
     if (dl) await page.waitForTimeout(600);
   } catch (e) { console.log('NOTE ' + label + ' klik gagal: ' + String(e).split('\n')[0]); }
   return dl;
+};
+/* Posisi pin dibaca dari gaya inline (koordinat lembar, bukan piksel layar). */
+const posisiPin = async (sel) => page.locator(sel).first()
+  .evaluate((el) => el.style.left + ',' + el.style.top).catch(() => '');
+/* Geser pin dengan tetikus sungguhan, arahnya menuju tengah lembar supaya
+   tidak mentok di tepi kertas. */
+const geserPin = async (sel, jarak = 40) => {
+  const pinBox = await page.locator(sel).first().boundingBox().catch(() => null);
+  const sheetBox = await page.locator('#page-editor .sheet').first().boundingBox().catch(() => null);
+  if (!pinBox || !sheetBox) return false;
+  const fromX = pinBox.x + pinBox.width / 2;
+  const fromY = pinBox.y + pinBox.height / 2;
+  const dirX = Math.sign(sheetBox.x + sheetBox.width / 2 - fromX) || 1;
+  const dirY = Math.sign(sheetBox.y + sheetBox.height / 2 - fromY) || 1;
+  await page.mouse.move(fromX, fromY);
+  await page.mouse.down();
+  await page.mouse.move(fromX + dirX * jarak, fromY + dirY * jarak, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  return true;
 };
 
 await page.goto(BASE, { waitUntil: 'networkidle' });
@@ -419,6 +445,536 @@ if (menuBtnVis) {
 }
 await page.setViewportSize({ width: 1440, height: 900 });
 await page.waitForTimeout(300);
+
+/* ══ Jalur G: status berkas mengikuti isi kanvas (tiket 01) ══ */
+await nav('editor');
+await page.click("[data-od-id='btn-add-design']");
+await page.waitForTimeout(350);
+await page.setInputFiles('#upload-input', syncPngPath);
+await page.waitForTimeout(400);
+await page.click('#dlg-upload .dialog-foot .btn-primary');
+await page.waitForTimeout(800);
+const syncRow = page.locator('#asset-list .asset', { hasText: 'e2e-sinkron.png' }).first();
+/* Status + angka "di layout" milik satu berkas di panel gambar. */
+const infoAset = async (nama) => {
+  const row = page.locator('#asset-list .asset', { hasText: nama }).first();
+  return {
+    status: ((await row.locator('.status').textContent().catch(() => '')) || '').replace(/\s+/g, ' ').trim(),
+    layout: ((await row.locator('.asset-sub').last().textContent().catch(() => '')) || '').replace(/\s+/g, ' ').trim(),
+  };
+};
+const syncInfo = () => infoAset('e2e-sinkron.png');
+const barisAset = (nama) => page.locator('#asset-list .asset', { hasText: nama }).first();
+/* Toast menutupi panel selama ~3 detik dan bisa menghalangi klik, jadi tunggu dulu. */
+const tungguToast = async () => {
+  await page.waitForFunction(() => document.querySelectorAll('#toast-stack .toast').length === 0, null, { timeout: 8000 }).catch(() => {});
+};
+/* Berkas berstatus "Terkunci" tetap "Terkunci" apa pun isi kanvas. */
+const lockedStatus = ((await page.locator('#asset-list .asset', { hasText: 'stiker-daun-hijau.png' })
+  .first().locator('.status').textContent().catch(() => '')) || '').trim();
+record('sinkron: berkas "Terkunci" tetap "Terkunci"', lockedStatus === 'Terkunci', lockedStatus);
+
+const infoAwal = await syncInfo();
+record(
+  'sinkron: berkas baru mulai "Belum Ditempatkan" dengan 0 di layout',
+  infoAwal.status === 'Belum Ditempatkan' && infoAwal.layout.includes('0 di layout'),
+  infoAwal.status + ' · ' + infoAwal.layout,
+);
+
+await page.click("[data-od-id='btn-deselect']");
+await page.waitForTimeout(200);
+await syncRow.click();
+await page.waitForTimeout(250);
+await page.click("[data-od-id='btn-add-to-layout']");
+await page.waitForTimeout(400);
+let gSync = 0;
+while ((await page.locator('#dlg-crop11.is-open').count()) > 0 && gSync < 10) {
+  await page.click("[data-od-id='btn-crop11-apply']");
+  await page.waitForTimeout(400);
+  gSync += 1;
+}
+const infoDitempatkan = await syncInfo();
+record(
+  'sinkron: tambah ke layout membuat berkas "Ditempatkan" 1 di layout',
+  infoDitempatkan.status === 'Ditempatkan' && infoDitempatkan.layout.includes('1 di layout'),
+  infoDitempatkan.status + ' · ' + infoDitempatkan.layout,
+);
+
+/* Pin hasil crop langsung terpilih setelah ditambahkan, jadi hapus lewat seleksi
+   (bukan klik kanvas: pin baru bertumpuk dengan pin lain di posisi awal). */
+const pinSync = await cnt('#page-editor .sheet .pin');
+await page.click("[data-od-id='btn-remove-layout']");
+await page.waitForTimeout(300);
+if (await isOpen('#dlg-confirm')) { await page.click('#confirm-ok'); await page.waitForTimeout(450); }
+const pinSyncAfter = await cnt('#page-editor .sheet .pin');
+const infoDihapus = await syncInfo();
+record(
+  'sinkron: hapus pin terakhir mengembalikan berkas ke "Belum Ditempatkan" dan 0 di layout',
+  pinSyncAfter === pinSync - 1
+    && infoDihapus.status === 'Belum Ditempatkan' && infoDihapus.layout.includes('0 di layout'),
+  pinSync + ' -> ' + pinSyncAfter + ' pin · ' + infoDihapus.status + ' · ' + infoDihapus.layout,
+);
+await page.screenshot({ path: path.join(OUT, 'e2e-40-sinkron-aset.png') });
+
+/* Undo hapus pin memulihkan status "Ditempatkan". */
+await page.keyboard.press('Control+z');
+await page.waitForTimeout(450);
+const infoUndo = await syncInfo();
+record(
+  'sinkron: undo hapus pin memulihkan "Ditempatkan" 1 di layout',
+  infoUndo.status === 'Ditempatkan' && infoUndo.layout.includes('1 di layout'),
+  infoUndo.status + ' · ' + infoUndo.layout,
+);
+
+/* Duplikat menambah hitungan; hapus satu dari dua menyisakan status "Ditempatkan". */
+await page.click("[data-od-id='btn-duplicate']");
+await page.waitForTimeout(450);
+const infoDup = await syncInfo();
+record('sinkron: duplikat pin menaikkan angka di layout jadi 2', infoDup.layout.includes('2 di layout'), infoDup.layout);
+await page.click("[data-od-id='btn-remove-layout']");
+await page.waitForTimeout(300);
+if (await isOpen('#dlg-confirm')) { await page.click('#confirm-ok'); await page.waitForTimeout(450); }
+const infoSisa = await syncInfo();
+record(
+  'sinkron: hapus satu dari dua pin menyisakan "Ditempatkan" 1 di layout',
+  infoSisa.status === 'Ditempatkan' && infoSisa.layout.includes('1 di layout'),
+  infoSisa.status + ' · ' + infoSisa.layout,
+);
+
+/* ══ Jalur G2: status aset di jalur lain (tiket 01, lanjutan) ══ */
+/* Proyek baru dari preset bawaan: 6 pin dari 4 berkas (maskot 2, kopi 2, daun 1, pola 1). */
+await nav('editor');
+await page.click("[data-od-id='btn-new-project']");
+await page.waitForTimeout(400);
+await page.fill('#np-name', 'E2E Sinkron Lanjutan');
+await page.selectOption('#np-preset', 'preset-1');
+await page.selectOption('#np-paper', 'a3');
+await page.click('#dlg-new-project .dialog-foot .btn-primary');
+await page.waitForTimeout(700);
+const infoPreset = await infoAset('maskot-astronaut.svg');
+record(
+  'sinkron: proyek dari preset mencatat pin bawaannya ke berkas yang benar',
+  infoPreset.status === 'Ditempatkan' && infoPreset.layout.includes('2 di layout'),
+  infoPreset.status + ' · ' + infoPreset.layout,
+);
+
+await page.click("[data-od-id='btn-add-design']");
+await page.waitForTimeout(350);
+await page.setInputFiles('#upload-input', syncPng2Path);
+await page.waitForTimeout(400);
+await page.click('#dlg-upload .dialog-foot .btn-primary');
+await page.waitForTimeout(800);
+const infoBaruAwal = await infoAset('e2e-sinkron2.png');
+record(
+  'sinkron: berkas kedua mulai "Belum Ditempatkan" dengan 0 di layout',
+  infoBaruAwal.status === 'Belum Ditempatkan' && infoBaruAwal.layout.includes('0 di layout'),
+  infoBaruAwal.status + ' · ' + infoBaruAwal.layout,
+);
+
+/* Pin berkas ini ditaruh di halaman 2 supaya status harus dihitung lintas halaman. */
+await page.click("[data-od-id='btn-page-add']");
+await page.waitForTimeout(450);
+const diHalaman2 = (await txt('#page-indicator')).includes('2 /');
+await page.click("[data-od-id='btn-deselect']");
+await page.waitForTimeout(150);
+await barisAset('e2e-sinkron2.png').click();
+await page.waitForTimeout(200);
+await page.click("[data-od-id='btn-add-to-layout']");
+await page.waitForTimeout(400);
+let gLanjut = 0;
+while ((await page.locator('#dlg-crop11.is-open').count()) > 0 && gLanjut < 10) {
+  await page.click("[data-od-id='btn-crop11-apply']");
+  await page.waitForTimeout(400);
+  gLanjut += 1;
+}
+const infoHalamanLain = await infoAset('maskot-astronaut.svg');
+const infoHalaman2 = await infoAset('e2e-sinkron2.png');
+record(
+  'sinkron: status tetap "Ditempatkan" dari pin di halaman lain',
+  diHalaman2 && infoHalamanLain.status === 'Ditempatkan' && infoHalamanLain.layout.includes('2 di layout'),
+  'halaman 2=' + diHalaman2 + ' · ' + infoHalamanLain.status + ' · ' + infoHalamanLain.layout,
+);
+record(
+  'sinkron: pin di halaman 2 membuat berkasnya "Ditempatkan" 1 di layout',
+  infoHalaman2.status === 'Ditempatkan' && infoHalaman2.layout.includes('1 di layout'),
+  infoHalaman2.status + ' · ' + infoHalaman2.layout,
+);
+
+/* Mengosongkan halaman 2 hanya memengaruhi berkas yang pin-nya ada di sana. */
+await page.click("[data-od-id='btn-reset-layout']");
+await page.waitForTimeout(300);
+if (await isOpen('#dlg-confirm')) { await page.click('#confirm-ok'); await page.waitForTimeout(500); }
+const infoKosong = await infoAset('e2e-sinkron2.png');
+const infoTetap = await infoAset('maskot-astronaut.svg');
+record(
+  'sinkron: kosongkan satu halaman mengembalikan berkas di halaman itu ke "Belum Ditempatkan" 0',
+  infoKosong.status === 'Belum Ditempatkan' && infoKosong.layout.includes('0 di layout'),
+  infoKosong.status + ' · ' + infoKosong.layout,
+);
+record(
+  'sinkron: kosongkan satu halaman tidak mengubah berkas di halaman lain',
+  infoTetap.status === 'Ditempatkan' && infoTetap.layout.includes('2 di layout'),
+  infoTetap.status + ' · ' + infoTetap.layout,
+);
+
+/* Hapus beberapa pin sekaligus: dua pin maskot + satu pin pola geometris. */
+await page.click("[data-od-id='btn-page-prev']");
+await page.waitForTimeout(450);
+await page.click('#zoom-fit');
+await page.waitForTimeout(450);
+const pinMaskotSel = '#page-editor .sheet .pin[title="maskot-astronaut"]';
+const pinPolaSel = '#page-editor .sheet .pin[title="pola-geometris"]';
+await page.locator(pinMaskotSel).first().click({ force: true });
+await page.waitForTimeout(200);
+await page.keyboard.down('Control');
+await page.locator(pinMaskotSel).nth(1).click({ force: true });
+await page.locator(pinPolaSel).first().click({ force: true });
+await page.keyboard.up('Control');
+await page.waitForTimeout(250);
+const terpilihHapus = await page.locator('#page-editor .sheet .pin.is-selected').count();
+await page.click("[data-od-id='btn-remove-layout']");
+await page.waitForTimeout(300);
+if (await isOpen('#dlg-confirm')) { await page.click('#confirm-ok'); await page.waitForTimeout(500); }
+const infoMaskotHapus = await infoAset('maskot-astronaut.svg');
+const infoPolaHapus = await infoAset('pola-geometris.png');
+record(
+  'sinkron: hapus beberapa pin sekaligus memperbarui status semua berkas terkait',
+  terpilihHapus === 3
+    && infoMaskotHapus.status === 'Belum Ditempatkan' && infoMaskotHapus.layout.includes('0 di layout')
+    && infoPolaHapus.status === 'Belum Ditempatkan' && infoPolaHapus.layout.includes('0 di layout'),
+  'terpilih=' + terpilihHapus + ' · maskot: ' + infoMaskotHapus.status + '/' + infoMaskotHapus.layout
+    + ' · pola: ' + infoPolaHapus.status + '/' + infoPolaHapus.layout,
+);
+
+/* Ganti Gambar: pin pinjaman dari berkas kopi memakai berkas pengganti yang benar. */
+await tungguToast();
+await page.locator('#page-editor .sheet .pin[title="logo-kopi-kenangan"]').first().click({ force: true });
+await page.waitForTimeout(300);
+await page.click("[data-od-id='btn-replace']");
+await page.waitForTimeout(400);
+const gCard = page.locator('#dlg-replace .gcard[aria-label="e2e-sinkron2.png"]').first();
+const gCardAda = (await gCard.count()) > 0;
+if (gCardAda) { await gCard.click(); await page.waitForTimeout(250); }
+await page.click('#dlg-replace .dialog-foot .btn-primary');
+await page.waitForTimeout(500);
+const infoGanti = await infoAset('e2e-sinkron2.png');
+const infoSumber = await infoAset('logo-kopi-kenangan.png');
+record(
+  'sinkron: pin hasil "Ganti Gambar" tercatat sebagai pemakai berkas pengganti',
+  gCardAda && infoGanti.status === 'Ditempatkan' && infoGanti.layout.includes('1 di layout')
+    && infoSumber.layout.includes('1 di layout'),
+  'kartu=' + gCardAda + ' · pengganti: ' + infoGanti.layout + ' · sumber: ' + infoSumber.layout,
+);
+
+/* Mengubah jarak antar desain tidak boleh memindahkan pin terkunci (temuan review). */
+await tungguToast();
+const pinKunciG2 = '#page-editor .sheet .pin.is-locked';
+const pinBebasG2 = '#page-editor .sheet .pin:not(.is-locked)';
+const posKunciG2 = await posisiPin(pinKunciG2);
+const posBebasG2 = await posisiPin(pinBebasG2);
+await page.click("[data-od-id='btn-paper-setup']");
+await page.waitForTimeout(400);
+await page.fill('#pp-gap', '9');
+await page.waitForTimeout(400);
+await page.click('#dlg-paper .dialog-foot .btn-primary');
+await page.waitForTimeout(500);
+const posKunciG2b = await posisiPin(pinKunciG2);
+const posBebasG2b = await posisiPin(pinBebasG2);
+record(
+  'kunci: mengubah jarak antar desain tidak memindahkan pin terkunci',
+  Boolean(posKunciG2) && posKunciG2b === posKunciG2,
+  posKunciG2 + ' -> ' + posKunciG2b,
+);
+record(
+  'kunci: mengubah jarak antar desain tetap menata ulang pin yang tidak terkunci',
+  Boolean(posBebasG2) && posBebasG2b !== posBebasG2,
+  posBebasG2 + ' -> ' + posBebasG2b,
+);
+
+/* Restore backup: status setiap berkas harus cocok dengan pin di dalam backup. */
+if (bakPath) {
+  await nav('settings');
+  await page.waitForTimeout(350);
+  await page.click("[data-tab='penyimpanan']");
+  await page.waitForTimeout(250);
+  await page.locator("[data-od-id='set-import']").scrollIntoViewIfNeeded().catch(() => {});
+  await page.locator("[data-od-id='set-import']").click({ timeout: 8000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  if (await isOpen('#dlg-import')) {
+    await page.setInputFiles('#import-input', bakPath);
+    await page.waitForTimeout(400);
+    await page.click('#dlg-import .dialog-foot .btn-primary');
+    await page.waitForTimeout(1200);
+  }
+  await nav('editor');
+  await page.waitForTimeout(500);
+  /* Diharapkan dihitung dari pin yang benar-benar ada, bukan dari status tersimpan. */
+  const cekRestore = await page.evaluate(() => {
+    const read = (key, fallback) => {
+      try { return JSON.parse(localStorage.getItem('pin-studio:' + key) || 'null') ?? fallback; } catch { return fallback; }
+    };
+    const pages = read('pages', []);
+    const assets = read('assets', []);
+    const hitung = new Map();
+    pages.forEach((p) => (p.pins || []).forEach((pin) => {
+      if (pin.assetId) hitung.set(pin.assetId, (hitung.get(pin.assetId) || 0) + 1);
+    }));
+    const label = { placed: 'Ditempatkan', unplaced: 'Belum Ditempatkan', locked: 'Terkunci' };
+    const beda = [];
+    assets.forEach((asset) => {
+      const row = document.querySelector(`#asset-list .asset[data-asset-id="${asset.id}"]`);
+      if (!row) { beda.push(asset.name + ': baris hilang'); return; }
+      const jumlah = hitung.get(asset.id) || 0;
+      const teks = ((row.querySelector('.status') || {}).textContent || '').trim();
+      const harap = label[asset.status === 'locked' ? 'locked' : jumlah > 0 ? 'placed' : 'unplaced'];
+      const layout = ((row.querySelectorAll('.asset-sub')[1] || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      if (teks !== harap || !layout.includes(jumlah + ' di layout')) {
+        beda.push(asset.name + ': ' + teks + ' / ' + layout + ' (harap ' + harap + ' ' + jumlah + ')');
+      }
+    });
+    return { total: assets.length, beda };
+  });
+  record(
+    'sinkron: setelah restore backup status cocok dengan pin di dalam backup',
+    cekRestore.total > 0 && cekRestore.beda.length === 0,
+    cekRestore.total + ' berkas' + (cekRestore.beda.length ? ' · beda: ' + cekRestore.beda.slice(0, 3).join(' | ') : ''),
+  );
+}
+await page.screenshot({ path: path.join(OUT, 'e2e-41-sinkron-lanjutan.png') });
+
+/* ══ Jalur H: saklar kunci posisi mengikuti pin terpilih (tiket 02) ══ */
+/* Proyek baru dipakai supaya pin bawaan yang terkunci (stiker daun hijau) pasti ada. */
+await nav('editor');
+await page.click("[data-od-id='btn-new-project']");
+await page.waitForTimeout(400);
+await page.fill('#np-name', 'E2E Kunci Posisi');
+await page.click('#dlg-new-project .dialog-foot .btn-primary');
+await page.waitForTimeout(600);
+/* Kamera kanvas bisa tergeser dari tahap sebelumnya; sesuaikan ke layar supaya
+   pin bawaan tidak tersembunyi di balik bilah alat. */
+await page.click('#zoom-fit');
+await page.waitForTimeout(500);
+
+const saklar = page.locator('#sw-lock');
+const saklarMenyala = async () => (await saklar.getAttribute('aria-checked')) === 'true';
+const tekanSaklar = async () => {
+  await tungguToast();
+  await saklar.click({ timeout: 8000 });
+  await page.waitForTimeout(350);
+};
+const pinKunciId = await page.locator('#page-editor .sheet .pin.is-locked').first()
+  .getAttribute('data-pin-id').catch(() => null);
+const pinKunciSel = pinKunciId ? `#page-editor .sheet .pin[data-pin-id="${pinKunciId}"]` : '#page-editor .sheet .pin.is-locked';
+record('kunci: pin bawaan yang terkunci ada di kanvas', Boolean(pinKunciId), String(pinKunciId));
+
+await tungguToast();
+await page.locator(pinKunciSel).first().click();
+await page.waitForTimeout(300);
+record('kunci: memilih pin terkunci menyalakan saklar', await saklarMenyala());
+
+await tekanSaklar();
+record(
+  'kunci: mematikan saklar membuka kunci pin',
+  !(await saklarMenyala()) && (await cnt(pinKunciSel + '.is-locked')) === 0,
+  'saklar=' + (await saklarMenyala()) + ', terkunci=' + (await cnt('#page-editor .sheet .pin.is-locked')),
+);
+
+const posBuka1 = await posisiPin(pinKunciSel);
+const geserBuka = await geserPin(pinKunciSel);
+const posBuka2 = await posisiPin(pinKunciSel);
+record('kunci: setelah dibuka pin bisa digeser di kanvas', geserBuka && posBuka2 !== posBuka1, posBuka1 + ' -> ' + posBuka2);
+
+await tekanSaklar();
+record(
+  'kunci: menyalakan saklar mengunci pin terpilih',
+  (await saklarMenyala()) && (await cnt(pinKunciSel + '.is-locked')) === 1,
+  'saklar=' + (await saklarMenyala()),
+);
+
+const posKunci1 = await posisiPin(pinKunciSel);
+const geserKunci = await geserPin(pinKunciSel);
+const posKunci2 = await posisiPin(pinKunciSel);
+record('kunci: pin terkunci tidak bergeser di kanvas', geserKunci && posKunci2 === posKunci1, posKunci1 + ' -> ' + posKunci2);
+await page.screenshot({ path: path.join(OUT, 'e2e-50-saklar-kunci.png') });
+
+/* Multi-seleksi dengan kunci campuran tampil mati; menekan saklar mengunci semua. */
+await tungguToast();
+await page.keyboard.down('Control');
+await page.locator('#page-editor .sheet .pin:not(.is-locked)').first().click();
+await page.keyboard.up('Control');
+await page.waitForTimeout(300);
+const terpilih = await page.locator('#page-editor .sheet .pin.is-selected').count();
+const terkunciSebelum = await cnt('#page-editor .sheet .pin.is-locked');
+record('kunci: multi-seleksi kunci campuran menampilkan saklar mati', terpilih === 2 && !(await saklarMenyala()), 'terpilih=' + terpilih);
+
+await tekanSaklar();
+record(
+  'kunci: menekan saklar mengunci semua pin terpilih',
+  (await saklarMenyala()) && (await cnt('#page-editor .sheet .pin.is-locked')) === terkunciSebelum + 1,
+  terkunciSebelum + ' -> ' + (await cnt('#page-editor .sheet .pin.is-locked')) + ' terkunci dari ' + terpilih + ' terpilih',
+);
+
+/* Jalur klik kanan juga harus mengubah saklar karena saklar diturunkan dari pin. */
+await tungguToast();
+await page.locator(pinKunciSel).first().click({ button: 'right' });
+await page.waitForTimeout(300);
+await page.locator("[data-od-id='ctx-lock']").click();
+await page.waitForTimeout(350);
+record(
+  'kunci: buka kunci lewat menu klik kanan mematikan saklar',
+  !(await saklarMenyala()) && (await cnt('#page-editor .sheet .pin.is-locked')) === 0,
+  'saklar=' + (await saklarMenyala()) + ', terkunci=' + (await cnt('#page-editor .sheet .pin.is-locked')),
+);
+
+/* ══ Jalur I: kunci tidak bisa dilewati panel kanan (tiket 03) ══ */
+/* Proyek baru lagi supaya posisi pin bawaan (termasuk yang terkunci) masih rapi
+   di grid awal dan tidak bertumpuk akibat tahap sebelumnya. */
+await nav('editor');
+await page.click("[data-od-id='btn-new-project']");
+await page.waitForTimeout(400);
+await page.fill('#np-name', 'E2E Kunci Panel');
+await page.click('#dlg-new-project .dialog-foot .btn-primary');
+await page.waitForTimeout(600);
+await page.click('#zoom-fit');
+await page.waitForTimeout(500);
+await tungguToast();
+
+const pinPanelId = await page.locator('#page-editor .sheet .pin.is-locked').first()
+  .getAttribute('data-pin-id').catch(() => null);
+const pinPanelSel = pinPanelId ? `#page-editor .sheet .pin[data-pin-id="${pinPanelId}"]` : '#page-editor .sheet .pin.is-locked';
+record('panel: pin bawaan terkunci siap diuji', Boolean(pinPanelId), String(pinPanelId));
+
+/* Kolom posisi harus menolak memindahkan pin terkunci dan memberi tahu pengguna. */
+await page.locator(pinPanelSel).first().click();
+await page.waitForTimeout(300);
+const posPanel1 = await posisiPin(pinPanelSel);
+const xPanel = Number((posPanel1.split(',')[0] || '').replace(/[^0-9.-]/g, '')) || 60;
+await page.fill('#in-pos-x', String(xPanel + 120));
+await page.dispatchEvent('#in-pos-x', 'change');
+await page.waitForTimeout(400);
+const posPanel2 = await posisiPin(pinPanelSel);
+const toastPanel = await txt('#toast-stack');
+record('panel: kolom posisi tidak memindahkan pin terkunci', posPanel2 === posPanel1, posPanel1 + ' -> ' + posPanel2);
+record('panel: penolakan kolom posisi memberi pesan jelas', /terkunci/i.test(toastPanel), toastPanel.slice(0, 80));
+
+/* Pin bebas tetap bisa digeser lewat kolom posisi. */
+await tungguToast();
+const pinBebasSel = '#page-editor .sheet .pin:not(.is-locked)';
+await page.locator(pinBebasSel).first().click();
+await page.waitForTimeout(300);
+const posBebas1 = await posisiPin(pinBebasSel);
+const xBebas = Number((posBebas1.split(',')[0] || '').replace(/[^0-9.-]/g, '')) || 60;
+await page.fill('#in-pos-x', String(xBebas + 120));
+await page.dispatchEvent('#in-pos-x', 'change');
+await page.waitForTimeout(400);
+const posBebas2 = await posisiPin(pinBebasSel);
+record('panel: kolom posisi memindahkan pin yang tidak terkunci', posBebas2 !== posBebas1, posBebas1 + ' -> ' + posBebas2);
+
+/* Ratakan ke grid: pin terkunci tetap, pin bebas ikut ditata.
+   Ukuran potong diubah dulu supaya grid benar-benar menata ulang (kalau tidak,
+   pin bawaan sudah berada di slot grid dan pemeriksaan jadi tidak bermakna). */
+await tungguToast();
+await page.fill('#in-cut', '44');
+await page.dispatchEvent('#in-cut', 'change');
+await page.waitForTimeout(250);
+await page.click("[data-od-id='btn-apply-settings']");
+await page.waitForTimeout(500);
+const posKunciGrid = await posisiPin(pinPanelSel);
+const posBebas3 = await posisiPin(pinBebasSel);
+record('panel: ratakan ke grid tidak memindahkan pin terkunci', posKunciGrid === posPanel1, posPanel1 + ' -> ' + posKunciGrid);
+record('panel: ratakan ke grid menata pin yang tidak terkunci', posBebas3 !== posBebas2, posBebas2 + ' -> ' + posBebas3);
+await page.screenshot({ path: path.join(OUT, 'e2e-60-kunci-panel.png') });
+
+/* Setelah kunci dibuka, kolom posisi bekerja normal lagi. */
+await tungguToast();
+await page.locator(pinPanelSel).first().click();
+await page.waitForTimeout(300);
+await tekanSaklar();
+const posPnlBuka1 = await posisiPin(pinPanelSel);
+const xBuka = Number((posPnlBuka1.split(',')[0] || '').replace(/[^0-9.-]/g, '')) || 60;
+await page.fill('#in-pos-x', String(xBuka + 120));
+await page.dispatchEvent('#in-pos-x', 'change');
+await page.waitForTimeout(400);
+const posPnlBuka2 = await posisiPin(pinPanelSel);
+record(
+  'panel: setelah kunci dibuka kolom posisi bekerja normal',
+  posPnlBuka2 !== posPnlBuka1,
+  posPnlBuka1 + ' -> ' + posPnlBuka2 + ' (saklar=' + (await saklarMenyala()) + ')',
+);
+
+/* ══ Jalur J: latar kanvas seperti meja kerja (tiket 04) ══ */
+/* Warna dibaca dari gaya terhitung, bukan dari nama kelas, supaya salah warna
+   akibat perubahan CSS ketahuan. "Kanvas gelap" aktif secara bawaan. */
+const bacaKanvas = () => page.evaluate(() => {
+  const scroll = document.querySelector('#canvas-scroll');
+  const kertas = document.querySelector('#page-editor .sheet');
+  if (!scroll) return null;
+  const cs = getComputedStyle(scroll);
+  const rgb = (cs.backgroundColor.match(/[\d.]+/g) || []).map(Number);
+  return {
+    warna: cs.backgroundColor,
+    rata: rgb.length >= 3 ? Math.round((rgb[0] + rgb[1] + rgb[2]) / 3) : null,
+    hangat: rgb.length >= 3 ? rgb[0] - rgb[2] : null,
+    pola: (cs.backgroundImage.match(/radial-gradient/g) || []).length,
+    kertas: kertas ? getComputedStyle(kertas).backgroundColor : '',
+  };
+});
+
+/* Tab pengaturan bisa tertinggal di "penyimpanan" dari tahap sebelumnya. */
+const bukaTabTampilan = async () => {
+  await nav('settings');
+  await page.click("[data-tab='tampilan']");
+  await page.waitForTimeout(250);
+};
+await nav('editor');
+const darkAwal = await page.locator('#canvas-scroll').evaluate((el) => el.classList.contains('is-dark-canvas'));
+if (darkAwal) { await bukaTabTampilan(); await page.click("[data-od-id='set-dark']"); await page.waitForTimeout(300); }
+await nav('editor');
+const kanvasTerang = await bacaKanvas();
+record(
+  'latar: mode terang bukan hitam pekat (abu hangat)',
+  Boolean(kanvasTerang) && kanvasTerang.rata >= 180 && kanvasTerang.hangat >= 0,
+  kanvasTerang ? kanvasTerang.warna + ' · rata=' + kanvasTerang.rata + ' · hangat=' + kanvasTerang.hangat : 'kanvas tak ditemukan',
+);
+record(
+  'latar: mode terang berpola titik + gradasi, bukan bidang polos',
+  Boolean(kanvasTerang) && kanvasTerang.pola >= 3,
+  'lapis gradien=' + (kanvasTerang ? kanvasTerang.pola : '-'),
+);
+record(
+  'latar: kertas tetap putih di mode terang',
+  Boolean(kanvasTerang) && kanvasTerang.kertas === 'rgb(255, 255, 255)',
+  kanvasTerang ? kanvasTerang.kertas : '-',
+);
+await page.screenshot({ path: path.join(OUT, 'e2e-70-latar-terang.png') });
+
+/* Mode gelap: arang lembut, bukan hitam murni; kertas tetap putih. */
+await tungguToast();
+await bukaTabTampilan();
+await page.click("[data-od-id='set-dark']");
+await page.waitForTimeout(300);
+await nav('editor');
+const kanvasGelap = await bacaKanvas();
+const darkAkhir = await page.locator('#canvas-scroll').evaluate((el) => el.classList.contains('is-dark-canvas'));
+record('latar: setelan "Kanvas gelap" tetap berfungsi', darkAkhir, 'is-dark-canvas=' + darkAkhir);
+record(
+  'latar: mode gelap memakai arang lembut, bukan hitam pekat',
+  Boolean(kanvasGelap) && kanvasGelap.rata >= 34 && kanvasGelap.rata <= 90,
+  kanvasGelap ? kanvasGelap.warna + ' · rata=' + kanvasGelap.rata : 'kanvas tak ditemukan',
+);
+record(
+  'latar: mode gelap tetap berpola titik halus',
+  Boolean(kanvasGelap) && kanvasGelap.pola >= 3,
+  'lapis gradien=' + (kanvasGelap ? kanvasGelap.pola : '-'),
+);
+record(
+  'latar: kertas tetap putih di mode gelap',
+  Boolean(kanvasGelap) && kanvasGelap.kertas === 'rgb(255, 255, 255)',
+  kanvasGelap ? kanvasGelap.kertas : '-',
+);
+await page.screenshot({ path: path.join(OUT, 'e2e-71-latar-gelap.png') });
+/* Kembalikan ke setelan bawaan (gelap aktif) supaya tahap lain tidak terpengaruh. */
+if (!darkAkhir) { await bukaTabTampilan(); await page.click("[data-od-id='set-dark']"); await page.waitForTimeout(250); await nav('editor'); }
 
 record('nol pageerror / console error E2E', problems.length === 0, problems.slice(0, 4).join(' | '));
 
