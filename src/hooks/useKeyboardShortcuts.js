@@ -2,6 +2,14 @@ import { useEffect } from 'react';
 import { useStudio } from '../state/StudioContext.jsx';
 import { useToast } from '../state/ToastContext.jsx';
 
+/* Fields keep their native shortcuts (typing, select, undo in text). */
+function isTypingTarget(target) {
+  if (!target || typeof target !== 'object') return false;
+  if (target.isContentEditable) return true;
+  const tag = String(target.tagName || '').toUpperCase();
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+}
+
 /* Global keyboard shortcuts — same keys/messages as the prototype. */
 export function useKeyboardShortcuts() {
   const studio = useStudio();
@@ -10,12 +18,25 @@ export function useKeyboardShortcuts() {
 
   useEffect(() => {
     const onKeyDown = (e) => {
+      const typing = isTypingTarget(e.target);
+
+      /* Escape always works, even inside a field. */
       if (e.key === 'Escape') {
         if (dialog) {
           studio.closeDialog();
           return;
         }
         if (railOpen) studio.closeRail();
+        if (page === 'editor' && (studio.selectedPinIds?.length || studio.selectedPinId)) studio.clearSelection();
+        return;
+      }
+
+      if (typing) return;
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && page === 'editor' && !dialog) {
+        /* Keeps Backspace from navigating away even when nothing is selected. */
+        e.preventDefault();
+        if ((studio.selectedPinIds && studio.selectedPinIds.length) || studio.selectedPinId) studio.removeSelectedPin();
         return;
       }
 
@@ -38,6 +59,12 @@ export function useKeyboardShortcuts() {
           e.preventDefault();
           studio.selectAllAssets();
         }
+      } else if (k === 'e') {
+        e.preventDefault();
+        studio.startExport({ format: 'PNG' });
+      } else if (k === 'p') {
+        e.preventDefault();
+        studio.print();
       } else if (k === '=' || k === '+') {
         e.preventDefault();
         studio.zoomBy(10);
@@ -47,17 +74,9 @@ export function useKeyboardShortcuts() {
       }
     };
 
-    const onKeyUp = (e) => {
-      if (e.key === 'Delete' && page === 'editor') {
-        studio.removeSelectedPin();
-      }
-    };
-
     document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyUp);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('keyup', onKeyUp);
     };
   }, [dialog, page, railOpen, redoStack.length, studio, toast, undoStack.length]);
 }

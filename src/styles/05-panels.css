@@ -108,3 +108,9 @@
 .box svg { width: 10px; height: 10px; color: var(--accent-on); opacity: 0; }
 .is-checked > .box, .box.is-checked { background: var(--accent); border-color: var(--accent); }
 .is-checked > .box svg, .box.is-checked svg { opacity: 1; }
+
+/* collapsible sub-menu inspector */
+details.section-block > summary.block-title { cursor: pointer; list-style: none; }
+details.section-block > summary.block-title::-webkit-details-marker { display: none; }
+details.section-block > summary.block-title::after { content: '▾'; color: var(--meta); }
+details.section-block:not([open]) > summary.block-title::after { content: '▸'; }

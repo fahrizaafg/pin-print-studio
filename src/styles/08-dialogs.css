@@ -149,7 +149,12 @@
   padding: var(--space-8);
   background: var(--fg);
 }
-.preview-body .sheet { box-shadow: 0 20px 60px rgba(0,0,0,.4); }
+.preview-body .sheet { box-shadow: none; }
+/* Preview is flat: no shadows, thinner permanent cut edge. */
+#pv-sheet .pin { border-width: 1px; }
+#pv-sheet .pin,
+#pv-sheet .pin:hover,
+#pv-sheet .pin.is-selected { box-shadow: none; }
 .preview-note {
   position: absolute; bottom: var(--space-4); left: var(--space-4);
   background: color-mix(in oklch, var(--fg) 82%, transparent);

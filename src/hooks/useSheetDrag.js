@@ -31,8 +31,8 @@ export function useSheetDrag(sheetRef, onMove, onDragStart, onDragEnd) {
         scale: getScale(),
         moved: false,
       };
-      target.setPointerCapture?.(event.pointerId);
-      target.style.cursor = 'grabbing';
+      try { target.setPointerCapture?.(event.pointerId); } catch { /* synthetic pointer in tests */ }
+      try { target.style.cursor = 'grabbing'; } catch { /* noop */ }
       event.preventDefault();
     },
     [getScale, onDragStart],

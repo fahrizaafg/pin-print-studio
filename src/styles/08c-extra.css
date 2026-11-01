@@ -89,13 +89,8 @@ input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: var(--focu
   background-size: 31px 31px;
 }
 
-/* ─── cut-line ring on each pin ─────────────────────────────────── */
-.sheet.show-cut .pin {
-  box-shadow: inset 0 0 0 1px var(--border), 0 0 0 2px var(--cut-line);
-}
-.sheet.show-cut .pin.is-selected {
-  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 2px var(--accent);
-}
+/* ─── pin edge is the physical product boundary: always visible ───── */
+/* (removed the old .show-cut gate; cutStyle switch only changes the style) */
 
 /* ─── crop marks (tanda potong) ─────────────────────────────────── */
 .cut-mark { display: none; }

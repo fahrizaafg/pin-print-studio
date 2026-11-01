@@ -10,7 +10,7 @@ const app = await ctx.newPage();
 await app.goto('http://127.0.0.1:4180/');
 await app.waitForTimeout(900);
 
-const fn = (page) => {
+const fn = (_page) => {
   const nodes = [...document.querySelectorAll('[data-od-id]')];
   return nodes.map((n) => ({ id: n.getAttribute('data-od-id'), page: n.closest('[data-page]') ? n.closest('[data-page]').getAttribute('data-page') : '-', text: (n.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90) }));
 };

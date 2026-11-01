@@ -2,18 +2,29 @@
 /* ─── canvas & sheet ────────────────────────────────────────────── */
 .canvas-col { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .canvas-scroll {
-  flex: 1; min-height: 0; overflow: auto; display: grid; place-items: center;
-  padding: var(--space-6);
+  flex: 1; min-height: 0; overflow: hidden; display: grid; place-items: center;
+  padding: 24px;
   background:
-    linear-gradient(color-mix(in oklch, var(--fg) 3%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
-    linear-gradient(90deg, color-mix(in oklch, var(--fg) 3%, transparent) 1px, transparent 1px) 0 0 / 24px 24px;
+    radial-gradient(1200px 600px at 50% -10%, color-mix(in oklch, var(--accent) 10%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 85% 110%, color-mix(in oklch, var(--warn) 8%, transparent), transparent 60%),
+    linear-gradient(color-mix(in oklch, var(--fg) 5%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, color-mix(in oklch, var(--fg) 5%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--surface);
 }
-.sheet-wrap { position: relative; }
+.canvas-scroll.is-no-scroll { overflow: hidden; }
+.sheet-wrap { position: relative; display: grid; place-items: center; min-height: 0; min-width: 0; justify-self: center; }
 .sheet {
   position: relative; background: var(--bg);
-  box-shadow: var(--shadow-sheet);
+  box-shadow: var(--elev-raised), 0 0 0 1px var(--border-soft);
+  border-radius: 6px;
   width: 620px; height: 877px;
-  transform-origin: top center;
+  transform-origin: center center;
+  flex: none;
+}
+.sheet-empty {
+  position: absolute; inset: 0; display: grid; place-content: center;
+  text-align: center; color: var(--muted); font-size: var(--text-sm);
+  pointer-events: none; padding: 24px;
 }
 .sheet-layer { position: absolute; inset: 0; pointer-events: none; }
 .sheet-layer > * { pointer-events: auto; }
@@ -33,14 +44,18 @@
 .pin {
   position: absolute; border-radius: 50%;
   display: grid; place-items: center;
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
+  background: #fff;
+  border: 2px solid #1b1b1f;
+  box-shadow: none;
   cursor: grab; overflow: hidden;
   transition: box-shadow var(--motion-fast) var(--ease-standard);
 }
-.pin:hover { box-shadow: inset 0 0 0 1px var(--meta), 0 2px 8px rgba(0,0,0,.1); }
+.pin.cut-dashed { border-style: dashed; }
+.pin.cut-solid { border-style: solid; }
+.pin:hover { box-shadow: 0 2px 8px rgba(0,0,0,.12); }
 .pin.is-selected {
-  box-shadow: inset 0 0 0 2px var(--accent), 0 3px 12px rgba(0,0,0,.16);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent), 0 3px 12px rgba(0,0,0,.16);
 }
 .pin.is-locked { cursor: not-allowed; }
 .pin-art {
@@ -50,7 +65,23 @@
   font-family: var(--font-display); font-weight: 600;
   overflow: hidden;
 }
-.pin-art svg { width: 56%; height: 56%; }
+.pin-art svg { width: 56%; height: 56%; pointer-events: none; }
+.pin-art img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+.pin-art.is-cropped img { object-fit: cover; }
+.pin-context-menu {
+  position: absolute; z-index: 200; min-width: 190px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--elev-raised);
+  padding: 6px; display: grid; gap: 2px;
+}
+.pin-context-menu button {
+  border: 0; background: transparent; text-align: left;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  font-size: var(--text-sm); color: var(--fg); cursor: pointer;
+}
+.pin-context-menu button:hover { background: var(--fg-soft); }
+.pin-context-menu button.is-danger { color: var(--danger); }
+.pin-context-menu button.is-danger:hover { background: var(--danger-soft); }
 .pin-art .initials { font-size: 15px; letter-spacing: -0.02em; }
 .pin-tag {
   position: absolute; bottom: -17px; left: 50%; transform: translateX(-50%);

@@ -1,8 +1,31 @@
 import { useStudio } from '../../state/StudioContext.jsx';
-import { RECENT_PROJECTS } from '../../data/studioData.js';
+import { PAPER_MM } from '../../data/studioData.js';
+
+const clampPercent = (value) => {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(100, Math.max(0, Math.round(value)));
+};
+
+/* Efisiensi = luas pin halaman aktif ÷ luas kertas (mm²). */
+function paperYield(pins, inspector) {
+  const paper = PAPER_MM[inspector.paper];
+  const diameter = Number(inspector.diameter);
+  const count = Array.isArray(pins) ? pins.length : 0;
+  if (!paper || !(diameter > 0) || !count) return 0;
+  const pinArea = Math.PI * (diameter / 2) ** 2;
+  const sheetArea = paper[0] * paper[1];
+  if (!(sheetArea > 0)) return 0;
+  return clampPercent((count * pinArea * 100) / sheetArea);
+}
 
 export default function HomePage({ active }) {
   const studio = useStudio();
+
+  const projectCount = studio.projects.length;
+  const designCount = studio.pages.reduce((total, page) => total + (page.pins ? page.pins.length : 0), 0);
+  const yieldPercent = paperYield(studio.pins, studio.inspector);
+  const exportCount = studio.stats.exports;
+  const recentProjects = studio.projects.slice(0, 5);
 
   return (
     <section className={`page${active ? ' is-active' : ''}`} id="page-home" data-page="home" data-od-id="page-home">
@@ -20,19 +43,19 @@ export default function HomePage({ active }) {
 
           <div className="grid-4 mb-6" data-od-id="home-stats">
             <div className="stat-tile" data-od-id="stat-projects">
-              <div className="stat-num num">5</div>
+              <div className="stat-num num">{projectCount}</div>
               <div className="stat-label">Proyek tersimpan di perangkat ini</div>
             </div>
             <div className="stat-tile" data-od-id="stat-designs">
-              <div className="stat-num num">6</div>
+              <div className="stat-num num">{designCount}</div>
               <div className="stat-label">Desain aktif pada proyek berjalan</div>
             </div>
             <div className="stat-tile" data-od-id="stat-yield">
-              <div className="stat-num num">92%</div>
+              <div className="stat-num num">{yieldPercent}%</div>
               <div className="stat-label">Rata-rata efisiensi pemakaian kertas</div>
             </div>
             <div className="stat-tile" data-od-id="stat-exports">
-              <div className="stat-num num">18</div>
+              <div className="stat-num num">{exportCount}</div>
               <div className="stat-label">Ekspor PDF &amp; PNG bulan ini</div>
             </div>
           </div>
@@ -74,11 +97,17 @@ export default function HomePage({ active }) {
               <tr><th>Nama proyek</th><th>Kertas</th><th>Desain</th><th>Diubah</th><th></th></tr>
             </thead>
             <tbody>
-              {RECENT_PROJECTS.map((project) => (
+              {recentProjects.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <span className="body-sm muted">Belum ada proyek tersimpan. Mulai dari Editor untuk membuat proyek baru.</span>
+                  </td>
+                </tr>
+              ) : recentProjects.map((project) => (
                 <tr key={project.id}>
                   <td>{project.name}</td>
                   <td className="num-col">{project.paper}</td>
-                  <td className="num-col">{project.designs}</td>
+                  <td className="num-col">{project.designs} desain</td>
                   <td className="num-col">{project.changed}</td>
                   <td>
                     <button type="button" className="btn btn-ghost btn-sm" data-od-id={project.id} onClick={() => studio.openProject(project.name)}>Buka</button>

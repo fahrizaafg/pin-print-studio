@@ -1,5 +1,5 @@
-/* Static demo content of the prototype (assets, pins, presets, history rows).
-   Kept in one place so the JSX stays readable. */
+/* Static seed content of the prototype (assets, pins, presets, history rows).
+   Kept in one place so the JSX stays readable. Runtime state lives in StudioContext. */
 
 export const PIN_SIZE = 150;
 
@@ -11,6 +11,23 @@ export const INITIAL_PINS = [
   { id: 'p5', x: 235, y: 235, size: PIN_SIZE, art: 'art-ink', icon: 'house', label: 'maskot-astronaut', locked: false },
   { id: 'p6', x: 410, y: 235, size: PIN_SIZE, art: 'art-brown', icon: 'coffee', label: 'logo-kopi-kenangan', locked: false },
 ];
+
+const clonePins = (prefix, list) => list.map((pin, index) => ({
+  ...pin, id: `${prefix}-p${index + 1}`, locked: false,
+}));
+
+/* Three real sheet pages: 6, 6 and 4 designs (matches the prototype copy). */
+export const PAGE_SEED = [
+  { id: 'page-1', pins: INITIAL_PINS },
+  { id: 'page-2', pins: clonePins('p2', INITIAL_PINS) },
+  { id: 'page-3', pins: clonePins('p3', INITIAL_PINS.slice(0, 4)) },
+];
+
+export const ART_PALETTE = ['art-ink', 'art-brown', 'art-green', 'art-blue', 'art-gray', 'art-yellow'];
+export const ICON_PALETTE = ['house', 'coffee', 'leaf', 'cross', 'sun', 'star'];
+
+export const PAPER_MM = { a4: [210, 297], a3: [297, 420], a3p: [329, 483] };
+export const PAPER_LABEL = { a4: 'A4', a3: 'A3', a3p: 'A3+' };
 
 export const ASSET_STATUS_LABEL = {
   placed: 'Ditempatkan',
@@ -42,6 +59,8 @@ export const PRESETS = [
     title: 'Grid Rapat A3',
     body: '4 baris × 3 kolom, jarak 4 mm, margin 8 mm. Untuk pesanan di atas 30 pcs.',
     confirm: 'Hapus preset Grid Rapat A3?',
+    builtin: true,
+    geometry: { paper: 'a3', orientation: 'portrait', diameter: 58, rows: 4, cols: 3, gap: 4, margin: 8, bleed: 3 },
   },
   {
     id: 'preset-2',
@@ -50,6 +69,8 @@ export const PRESETS = [
     title: 'Hemat A4 38mm',
     body: 'Mode hemat kertas untuk pin kecil. Muat hingga 40 potong per lembar.',
     confirm: 'Hapus preset Hemat A4 38mm?',
+    builtin: true,
+    geometry: { paper: 'a4', orientation: 'portrait', diameter: 44, rows: 5, cols: 4, gap: 3, margin: 6, bleed: 2 },
   },
   {
     id: 'preset-3',
@@ -58,6 +79,8 @@ export const PRESETS = [
     title: 'Pin Besar A3+',
     body: 'Diameter 75 mm dengan bleed 3 mm. Cocok untuk pin edisi terbatas.',
     confirm: 'Hapus preset Pin Besar A3+?',
+    builtin: true,
+    geometry: { paper: 'a3p', orientation: 'portrait', diameter: 75, rows: 3, cols: 3, gap: 6, margin: 10, bleed: 3 },
   },
 ];
 
@@ -67,25 +90,13 @@ export const BUILTIN_TEMPLATES = [
   { id: 'tpl-magnet', name: 'Magnet Kulkas 65 mm', last: true },
 ];
 
-export const RECENT_PROJECTS = [
-  { id: 'home-open-1', name: 'Layout Pin A3 — Kopi Kenangan', paper: 'A3', designs: '6', changed: '2 menit lalu' },
-  { id: 'home-open-2', name: 'Pin Wisuda 2026 — SMAN 3', paper: 'A4', designs: '12', changed: 'Kemarin' },
-  { id: 'home-open-3', name: 'Merch Kucing Oren — Toko Paws', paper: 'A3+', designs: '9', changed: '3 hari lalu' },
-];
-
+/* Project history (also feeds the "Proyek terbaru" table on the home page). */
 export const HISTORY_ROWS = [
   { id: '1', name: 'Layout Pin A3 — Kopi Kenangan', paper: 'A3', designs: '6', changed: '2 menit lalu', size: '1,4 MB' },
   { id: '2', name: 'Pin Wisuda 2026 — SMAN 3', paper: 'A4', designs: '12', changed: 'Kemarin, 16:40', size: '2,1 MB' },
   { id: '3', name: 'Merch Kucing Oren — Toko Paws', paper: 'A3+', designs: '9', changed: '3 hari lalu', size: '3,6 MB' },
   { id: '4', name: 'Pin Komunitas Sepeda — GowesID', paper: 'A4', designs: '8', changed: '5 hari lalu', size: '1,0 MB' },
   { id: '5', name: 'Pin Restoran — Sate Pak Kumis', paper: 'A3', designs: '15', changed: '1 minggu lalu', size: '4,2 MB' },
-];
-
-export const OPEN_PROJECTS = [
-  { id: 'op1', name: 'Layout Pin A3 — Kopi Kenangan', meta: 'A3 · 6 desain · 2 menit lalu' },
-  { id: 'op2', name: 'Pin Wisuda 2026 — SMAN 3', meta: 'A4 · 12 desain · Kemarin' },
-  { id: 'op3', name: 'Merch Kucing Oren — Toko Paws', meta: 'A3+ · 9 desain · 3 hari lalu' },
-  { id: 'op4', name: 'Pin Komunitas Sepeda — GowesID', meta: 'A4 · 8 desain · 5 hari lalu' },
 ];
 
 export const RESTORE_VERSIONS = [
@@ -95,25 +106,26 @@ export const RESTORE_VERSIONS = [
 ];
 
 export const DEFAULT_TOGGLES = {
-  cut: true, bleed: true, grid: true, margin: false, safe: false, filename: true, number: true, marks: false,
+  cut: true, bleed: true, grid: true, margin: false, safe: false, number: false, marks: false,
 };
 
 export const DEFAULT_INSPECTOR = {
-  diameter: 58,
+  photoSizeMm: 47,
+  cutSizeMm: 57,
+  unit: 'mm',
   posX: 60,
   posY: 60,
   lock: false,
+  snap: false,
   bleed: 3,
-  bleedColor: '#0071e3',
-  imgZoom: 100,
   rotate: 0,
-  qty: 40,
   paper: 'a3',
   orientation: 'portrait',
   margin: 8,
   gap: 4,
   rows: 4,
   cols: 3,
+  cutStyle: 'solid',
   customWidth: 329,
   customHeight: 483,
 };
@@ -147,6 +159,15 @@ export const EXPORT_NOTES = [
   'Menyematkan tanda potong…',
   'Menulis berkas…',
 ];
+
+export const BACKUP_NOTES = [
+  'Mengumpulkan proyek…',
+  'Menulis arsip .pinzip…',
+  'Memeriksa cadangan…',
+  'Menyelesaikan…',
+];
+
+export const DEFAULT_PROJECT_NAME = 'Layout Pin A3 — Kopi Kenangan';
 
 export const PAGE_TITLES = {
   home: 'Beranda',

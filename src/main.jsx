@@ -12,6 +12,7 @@ import './styles/07-pages.css';
 import './styles/08-dialogs.css';
 import './styles/08b-extra.css';
 import './styles/08c-extra.css';
+import './styles/09-functional.css';
 
 import App from './App.jsx';
 

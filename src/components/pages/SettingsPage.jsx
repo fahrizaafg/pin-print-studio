@@ -2,7 +2,6 @@ import { useStudio } from '../../state/StudioContext.jsx';
 
 const TABS = [
   { id: 'tampilan', label: 'Tampilan' },
-  { id: 'produksi', label: 'Default Produksi' },
   { id: 'ekspor', label: 'Ekspor' },
   { id: 'penyimpanan', label: 'Penyimpanan' },
 ];
@@ -39,22 +38,19 @@ export default function SettingsPage({ active }) {
           <div className="head-copy">
             <p className="eyebrow">Preferensi</p>
             <h1>Pengaturan</h1>
-            <p className="lead">Atur tampilan, nilai default produksi, opsi ekspor, dan penyimpanan proyek.</p>
+            <p className="lead">Atur tampilan, opsi ekspor, dan penyimpanan proyek. Ukuran dan kertas diatur dari Editor.</p>
           </div>
           <div className="row">
             <button
               type="button"
               className="btn btn-secondary btn-sm"
               data-od-id="btn-settings-reset"
-              onClick={() => studio.requestConfirm({ message: 'Kembalikan semua pengaturan ke nilai default?', toast: 'Pengaturan direset.' })}
+              onClick={() => studio.requestConfirm({
+                message: 'Kembalikan semua pengaturan ke bawaan?',
+                toast: 'Pengaturan dikembalikan ke bawaan.',
+                onConfirm: () => studio.resetSettings(),
+              })}
             >Reset</button>
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              id="btn-settings-save"
-              data-od-id="btn-settings-save"
-              onClick={() => { studio.save(); studio.toastInline('Pengaturan tersimpan.', 'ok'); }}
-            >Simpan</button>
           </div>
         </div>
       </div>
@@ -89,7 +85,6 @@ export default function SettingsPage({ active }) {
                     <label htmlFor="set-lang">Bahasa antarmuka</label>
                     <select className="select" id="set-lang" data-od-id="set-lang" value={settings.lang} onChange={(e) => set({ lang: e.target.value })}>
                       <option>Bahasa Indonesia</option>
-                      <option>English</option>
                     </select>
                   </div>
                   <div className="field">
@@ -101,63 +96,6 @@ export default function SettingsPage({ active }) {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div data-tab-panel="produksi" data-od-id="panel-produksi" hidden={settingsTab !== 'produksi'}>
-            <div className="card">
-              <h3 className="mb-4">Nilai default produksi</h3>
-              <div className="grid-3">
-                <div className="field">
-                  <label htmlFor="set-dia">Diameter potong</label>
-                  <div className="input-unit">
-                    <input className="input" type="number" id="set-dia" data-od-id="set-dia" value={settings.dia} onChange={(e) => set({ dia: Number(e.target.value) })} />
-                    <span className="unit">mm</span>
-                  </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="set-bleed">Bleed</label>
-                  <div className="input-unit">
-                    <input className="input" type="number" id="set-bleed" data-od-id="set-bleed" value={settings.bleed} onChange={(e) => set({ bleed: Number(e.target.value) })} />
-                    <span className="unit">mm</span>
-                  </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="set-gap2">Jarak antardesain</label>
-                  <div className="input-unit">
-                    <input className="input" type="number" id="set-gap2" data-od-id="set-gap2" value={settings.gap2} onChange={(e) => set({ gap2: Number(e.target.value) })} />
-                    <span className="unit">mm</span>
-                  </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="set-paper2">Ukuran kertas</label>
-                  <select className="select" id="set-paper2" data-od-id="set-paper2" value={settings.paper2} onChange={(e) => set({ paper2: e.target.value })}>
-                    <option>A4</option><option>A3</option><option>A3+</option>
-                  </select>
-                </div>
-                <div className="field">
-                  <label htmlFor="set-safe">Safe area</label>
-                  <div className="input-unit">
-                    <input className="input" type="number" id="set-safe" data-od-id="set-safe" value={settings.safe} onChange={(e) => set({ safe: Number(e.target.value) })} />
-                    <span className="unit">mm</span>
-                  </div>
-                </div>
-                <div className="field">
-                  <label htmlFor="set-margin2">Margin</label>
-                  <div className="input-unit">
-                    <input className="input" type="number" id="set-margin2" data-od-id="set-margin2" value={settings.margin2} onChange={(e) => set({ margin2: Number(e.target.value) })} />
-                    <span className="unit">mm</span>
-                  </div>
-                </div>
-              </div>
-              <SwitchRow
-                label="Mode hemat kertas default"
-                sub="Kemas desain serapat mungkin"
-                on={settings.eco}
-                onToggle={() => set({ eco: !settings.eco })}
-                odId="set-eco"
-              />
-              <div className="mt-5" />
             </div>
           </div>
 
@@ -226,13 +164,18 @@ export default function SettingsPage({ active }) {
                   odId="set-cache"
                 />
                 <div className="row2 mt-4">
-                  <button type="button" className="btn btn-secondary btn-sm" id="btn-clear-cache" data-od-id="btn-clear-cache" onClick={studio.clearCache}>Bersihkan Cache</button>
+                  <button type="button" className="btn btn-secondary btn-sm" id="btn-clear-cache" data-od-id="btn-clear-cache" onClick={() => studio.clearCache()}>Bersihkan Cache</button>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
                     id="btn-clear-all"
                     data-od-id="btn-clear-all"
-                    onClick={() => studio.requestConfirm({ message: 'Hapus semua data proyek dari perangkat ini?', toast: 'Data lokal dihapus.' })}
+                    onClick={() => studio.requestConfirm({
+                      message: 'Reset dan kosongkan semua? Proyek, galeri, dan layout dihapus.',
+                      note: 'Preset tetap tersimpan. Tindakan ini tidak dapat dibatalkan.',
+                      toast: 'Semua data dikosongkan.',
+                      onConfirm: () => studio.resetToDefault(),
+                    })}
                   >Hapus Semua Data</button>
                 </div>
               </div>

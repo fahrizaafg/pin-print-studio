@@ -1,0 +1,29 @@
+PASS aplikasi termuat — proyek: Proyek Tanpa Judul
+PASS navigasi editor
+PASS navigasi gallery
+PASS navigasi templates
+PASS navigasi history
+PASS navigasi settings
+PASS navigasi help
+PASS navigasi home
+PASS terapkan diameter ke pin terpilih — 150px -> 184px (pin=6)
+PASS undo mengembalikan ukuran pin — 150px
+PASS tambah halaman — 3 -> 4
+PASS undo menghapus halaman baru — 3
+PASS toggle layer grid — 1 -> 0
+PASS reset layout berjalan setelah konfirmasi — dialog=1->0 pins=0
+PASS duplikat kartu galeri — 4 -> 5
+PASS hapus kartu galeri — 5 -> 4
+PASS filter galeri menyembunyikan kartu
+PASS hapus filter memunculkan kartu lagi
+PASS gunakan preset membuka editor — preset=4
+PASS duplikat proyek dari riwayat — 6 -> 7
+PASS pratinjau merender halaman — sheet=1
+PASS ekspor PNG menghasilkan berkas — Proyek Tanpa Judul-20261027-hal3-hal1.png
+PASS tema gelap mengubah kanvas — true->false
+PASS Backspace/Delete di input tidak menghapus pin — 4 -> 4
+PASS dialog buka proyek tampil — baris=7
+PASS nama proyek bertahan setelah reload — Proyek Tanpa Judul / Proyek Tanpa Judul
+PASS tidak ada pageerror / console error
+
+27/27 pemeriksaan lulus

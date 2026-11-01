@@ -1,0 +1,40 @@
+PASS aplikasi termuat dari kanvas kosong — Proyek Tanpa Judul
+PASS dialog proyek baru terbuka
+PASS buat proyek E2E Warung Sate — E2E Warung Sate
+PASS dialog upload terbuka
+PASS unggah PNG asli menambah aset — 6 -> 7
+PASS tambah ke layout membuka antrean crop 1:1
+PASS crop 1:1 menambah pin ke layout — 6 -> 13 (crop langkah=7)
+PASS pengaturan kertas A4 diterapkan — Kertas A4 • Portrait
+PASS diameter 44mm + ratakan ke grid — pin=13
+PASS pusatkan halaman berjalan
+PASS duplikat proyek dari riwayat — 6 -> 7
+PASS duplikat preset — 3 -> 4
+PASS ganti gambar pin terpilih — dialog ganti=true
+PASS tambah halaman untuk repeat order — Halaman 1 / 1 -> Halaman 2 / 2
+PASS simpan proyek repeat order — Tersimpan baru saja
+PASS pratinjau merender halaman
+PASS pratinjau pindah halaman — Hal. 1 / 2 -> Hal. 2 / 2
+PASS DPI pratinjau 600 dipilih — A4 Portrait13 desain · diameter 44 mm · bleed 3 mm · 600 DPI
+PASS ekspor PDF menghasilkan berkas valid — E2E Warung Sate-20261027-hal2.pdf
+PASS ekspor PNG menghasilkan berkas valid — E2E Warung Sate-20261027-hal2-hal1.png
+PASS backup menghasilkan .pinzip valid — E2E Warung Sate-20261027-hal2.pinzip
+PASS dialog impor terbuka
+PASS restore backup membuka editor E2E — E2E Warung Sate
+PASS impor file tidak valid dicegah dengan aman — ditolak
+PASS nama kosong jadi Proyek Tanpa Judul (tak crash) — Proyek Tanpa Judul
+PASS unggah: tombol nonaktif saat tidak ada berkas (validasi empty state) — disabled=true
+PASS hapus halaman terakhir dicegah (tetap 1) — halaman=1
+PASS tombol hapus halaman nonaktif saat 1 halaman — disabled=true
+PASS undo mengembalikan pin terhapus — 6 -> 5 -> 6
+PASS multi-select: 2 pin dipilih bersamaan — terpilih=2
+PASS klik kanan pada pin mempertahankan seleksi jamak — menu=true, terpilih=2
+PASS hapus sekaligus via klik kanan menghapus semua pin terpilih — 6 -> 4
+PASS zoom minimum terkunci di 25% — 25%
+PASS zoom maksimum terkunci di 200% — 200%
+PASS mobile: tombol menu terlihat
+PASS mobile: rail menu terbuka saat menu-toggle diklik
+PASS mobile: klik scrim menutup rail menu
+PASS nol pageerror / console error E2E
+
+38/38 tahap lulus

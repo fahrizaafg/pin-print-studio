@@ -117,7 +117,7 @@ await gotoPage(original, 'editor');
 await gotoPage(app, 'editor');
 await original.evaluate(() => window.pinOpenDialog && window.pinOpenDialog('dlg-export'));
 await app.evaluate(() => {
-  const btn = document.querySelector('[data-od-id="btn-export-cta"]');
+  const btn = document.querySelector('[data-od-id="btn-export"]');
   if (btn) btn.click();
 });
 await original.waitForTimeout(420);

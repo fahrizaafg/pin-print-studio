@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStudio } from '../state/StudioContext.jsx';
 
 const NAV = [
@@ -15,38 +15,48 @@ const NAV = [
   ] },
 ];
 
+function relativeSaveLabel(lastSavedAt, now) {
+  if (!lastSavedAt) return 'Tersimpan 2 menit lalu';
+  const minutes = Math.floor((now - lastSavedAt) / 60000);
+  if (minutes < 1) return 'Tersimpan baru saja';
+  if (minutes < 60) return 'Tersimpan ' + minutes + ' menit lalu';
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return 'Tersimpan ' + hours + ' jam lalu';
+  return 'Tersimpan ' + Math.floor(hours / 24) + ' hari lalu';
+}
+
 export default function Rail() {
   const studio = useStudio();
-  const { page, goPage, save, openDialog, railOpen } = studio;
-  const [saveLabel, setSaveLabel] = useState(null);
+  const {
+    page, goPage, save, railOpen, projectName, pins, galleryCards, presets, projects,
+    saveState, lastSavedAt,
+  } = studio;
+  const [now, setNow] = useState(() => Date.now());
 
-  /*
-   * Prototype restores "Tersimpan N menit lalu" on boot. The clock read is
-   * impure, so it happens once in the state initialiser — not during render.
-   */
-  const [initialLabel] = useState(() => (
-    studio.lastSavedAt
-      ? `Tersimpan ${Math.max(1, Math.round((Date.now() - studio.lastSavedAt) / 60000))} menit lalu`
-      : 'Tersimpan 2 menit lalu'
-  ));
-  const shown = saveLabel ?? initialLabel;
+  /* Keep "Tersimpan N menit lalu" honest while the app stays open. */
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const badgeCounts = {
-    editor: 6,
-    gallery: 6,
-    templates: 4,
-    history: 5,
+    editor: pins.length,
+    gallery: galleryCards.length,
+    templates: presets.length,
+    history: projects.length,
   };
 
+  const shown = relativeSaveLabel(lastSavedAt, now);
+
   return (
-    <aside className={`rail${railOpen ? ' is-open' : ''}`} id="rail" data-od-id="app-rail">
+    <aside className={'rail' + (railOpen ? ' is-open' : '')} id="rail" data-od-id="app-rail">
       <div className="rail-brand">
-      <div className="rail-mark" aria-hidden="true">P</div>
-      <div className="rail-brand-text">
-        <div className="rail-title">Pin Print Studio</div>
-        <div className="rail-sub" id="rail-project-name">Proyek Tanpa Judul</div>
+        <div className="rail-mark" aria-hidden="true">P</div>
+        <div className="rail-brand-text">
+          <div className="rail-title">Pin Print Studio</div>
+          <div className="rail-sub" id="rail-project-name">{projectName}</div>
+        </div>
       </div>
-    </div>
 
       <nav className="rail-nav" data-od-id="rail-nav" aria-label="Navigasi utama">
         {NAV.map((group) => (
@@ -56,9 +66,9 @@ export default function Rail() {
               <button
                 key={item.id}
                 type="button"
-                className={`rail-item${page === item.id ? ' is-active' : ''}`}
+                className={'rail-item' + (page === item.id ? ' is-active' : '')}
                 data-nav={item.id}
-                data-od-id={`nav-${item.id}`}
+                data-od-id={'nav-' + item.id}
                 onClick={() => goPage(item.id)}
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -66,7 +76,7 @@ export default function Rail() {
                 </svg>
                 {' '}{item.label}
                 {item.badge ? (
-                  <span className="rail-badge" id={`badge-${item.badge}`}>{' '}{badgeCounts[item.badge]}</span>
+                  <span className="rail-badge" id={'badge-' + item.badge}>{' '}{badgeCounts[item.badge]}</span>
                 ) : null}
               </button>
             ))}
@@ -76,9 +86,9 @@ export default function Rail() {
 
       <div className="rail-foot">
         <div className="save-state" data-od-id="save-indicator">
-          <span className={`save-dot${studio.saveState === 'saving' ? ' is-saving' : ''}`} id="save-dot" />
+          <span className={'save-dot' + (saveState === 'saving' ? ' is-saving' : '')} id="save-dot" />
           <span id="save-label">
-            {studio.saveState === 'saving' ? 'Menyimpan…' : studio.saveState === 'done' ? 'Tersimpan baru saja' : shown}
+            {saveState === 'saving' ? 'Menyimpan…' : shown}
           </span>
         </div>
         <div className="row2">
@@ -86,13 +96,13 @@ export default function Rail() {
             className="btn btn-secondary btn-sm"
             id="rail-save"
             data-od-id="btn-rail-save"
-            onClick={() => { setSaveLabel(null); save(); }}
+            onClick={() => save()}
           >Simpan</button>
           <button
             className="btn btn-secondary btn-sm"
             id="rail-preview"
             data-od-id="btn-rail-preview"
-            onClick={() => openDialog('dlg-export')}
+            onClick={() => goPage('preview')}
           >Pratinjau</button>
         </div>
       </div>
@@ -134,7 +144,7 @@ function IconShape({ name }) {
     help: (
       <>
         <circle cx="12" cy="12" r="9" />
-        <path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1 1.6v.4" />
+        <path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.7.3-1 .9-1.1 1.6v.4" />
         <circle cx="12" cy="17" r=".9" fill="currentColor" stroke="none" />
       </>
     ),

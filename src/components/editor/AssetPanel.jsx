@@ -36,19 +36,22 @@ export default function AssetPanel() {
               <button
                 key={asset.id}
                 type="button"
-                className={`asset${asset.selected ? ' is-selected' : ''}`}
+                className={`asset${asset.selected ? ' is-selected' : ''}${visible ? '' : ' is-hidden'}`}
                 data-asset-id={asset.id}
                 data-od-id={`asset-${index + 1}`}
-                style={visible ? undefined : { display: 'none' }}
                 onClick={() => toggleAsset(asset.id)}
               >
                 <span className={`box${asset.selected ? ' is-checked' : ''}`} aria-hidden="true">
                   <Icon name="check" stroke={2.4} />
                 </span>
                 <span className="asset-thumb">
-                  <span className={`pin-art ${asset.art}`} style={{ width: 34, height: 34 }}>
-                    <Icon name={asset.icon} stroke={1.8} />
-                  </span>
+                  {asset.url ? (
+                    <img src={asset.url} alt={asset.name} />
+                  ) : (
+                    <span className={`pin-art ${asset.art}`} style={{ width: 34, height: 34 }}>
+                      <Icon name={asset.icon} stroke={1.8} />
+                    </span>
+                  )}
                 </span>
                 <span className="asset-main">
                   <span className="asset-name">{asset.name}</span>
@@ -62,6 +65,16 @@ export default function AssetPanel() {
             );
           })}
         </div>
+        {count === 0 ? (
+          <div className="empty" data-od-id="asset-empty" style={{ margin: '12px 0', textAlign: 'center' }}>
+            <h3 style={{ fontSize: 14, margin: '8px 0 4px' }}>Belum ada gambar</h3>
+            <p className="body-sm muted" style={{ margin: '0 0 10px' }}>Unggah PNG, JPG, atau SVG untuk mulai menyusun layout.</p>
+            <button type="button" className="btn btn-primary btn-sm" data-od-id="asset-empty-upload" onClick={() => openDialog('dlg-upload')}>
+              <Icon name="plus" />
+              Upload Gambar
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="panel-foot" data-od-id="asset-actions">
@@ -90,6 +103,19 @@ export default function AssetPanel() {
           <button type="button" className="btn btn-secondary btn-sm" id="btn-select-all" data-od-id="btn-select-all" onClick={selectAllAssets}>Pilih Semua</button>
           <button type="button" className="btn btn-secondary btn-sm" id="btn-deselect" data-od-id="btn-deselect" onClick={deselectAssets}>Batalkan Pilihan</button>
         </div>
+        <div className="row2">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            id="btn-add-to-layout"
+            data-od-id="btn-add-to-layout"
+            style={{ gridColumn: '1 / -1' }}
+            onClick={() => studio.addSelectedAssetsToLayout()}
+          >
+            <Icon name="plus" />
+            Tambah ke Layout
+          </button>
+        </div>
         <div className="row3">
           <button type="button" className="btn btn-secondary btn-sm" data-od-id="btn-replace" onClick={() => openDialog('dlg-replace')}>Ganti Gambar</button>
           <button type="button" className="btn btn-secondary btn-sm" id="btn-duplicate" data-od-id="btn-duplicate" onClick={studio.duplicateSelectedPin}>Duplikat</button>
@@ -98,8 +124,10 @@ export default function AssetPanel() {
             className="btn btn-danger btn-sm"
             data-od-id="btn-delete-asset"
             onClick={() => requestConfirm({
-              message: 'Hapus 1 desain terpilih dari proyek?',
-              toast: 'Desain dihapus dari proyek.',
+              message: 'Hapus aset terpilih dari panel?',
+              note: 'Aset yang dihapus tidak bisa dikembalikan. Desain di layout tetap utuh.',
+              toast: 'Aset dihapus.',
+              onConfirm: () => studio.removeSelectedAssets(),
             })}
           >Hapus</button>
         </div>

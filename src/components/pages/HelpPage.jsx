@@ -1,5 +1,5 @@
+import { Fragment } from 'react';
 import { useStudio } from '../../state/StudioContext.jsx';
-import { Icon } from '../ui/icons.jsx';
 
 const STEPS = [
   {
@@ -20,17 +20,56 @@ const STEPS = [
   },
 ];
 
+/* Mirrors src/hooks/useKeyboardShortcuts.js — keep both in sync. */
 const SHORTCUTS = [
   ['Simpan proyek', ['Ctrl', 'S']],
   ['Undo', ['Ctrl', 'Z']],
   ['Redo', ['Ctrl', 'Y']],
+  ['Redo (alternatif)', ['Ctrl', 'Shift', 'Z']],
   ['Zoom masuk', ['Ctrl', '+']],
   ['Zoom keluar', ['Ctrl', '−']],
   ['Pilih semua desain', ['Ctrl', 'A']],
+  ['Ekspor PNG', ['Ctrl', 'E']],
+  ['Cetak', ['Ctrl', 'P']],
+  ['Hapus desain terpilih', ['Delete']],
+  ['Tutup dialog / panel', ['Esc']],
 ];
+
+function shortcutSummary() {
+  return [
+    'Pintasan keyboard — Pin Print Studio',
+    ...SHORTCUTS.map(([label, keys]) => label + ': ' + keys.join('+')),
+  ].join('\n');
+}
+
+function KeyList({ keys }) {
+  return (
+    <span>
+      {keys.map((k, i) => (
+        <Fragment key={k}>
+          {i > 0 ? ' ' : null}
+          <span className="kbd">{k}</span>
+        </Fragment>
+      ))}
+    </span>
+  );
+}
 
 export default function HelpPage({ active }) {
   const studio = useStudio();
+
+  const copyShortcuts = async () => {
+    const text = shortcutSummary();
+    try {
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        throw new Error('clipboard-unavailable');
+      }
+      await navigator.clipboard.writeText(text);
+      studio.notify('Ringkasan shortcut disalin ke clipboard.', 'ok');
+    } catch {
+      studio.toastInline('Clipboard tidak tersedia — ringkasan shortcut gagal disalin.', 'err');
+    }
+  };
 
   return (
     <section className={`page${active ? ' is-active' : ''}`} id="page-help" data-page="help" data-od-id="page-help">
@@ -68,13 +107,9 @@ export default function HelpPage({ active }) {
                   {SHORTCUTS.map(([label, keys]) => (
                     <div className="row-between" key={label}>
                       <span className="body-sm">{label}</span>
-                      <span>{keys.flatMap((k, i) => (i > 0 ? [' ', <span className="kbd" key={k}>{k}</span>] : [<span className="kbd" key={k}>{k}</span>]))}</span>
+                      <KeyList keys={keys} />
                     </div>
                   ))}
-                  <div className="row-between">
-                    <span className="body-sm">Hapus desain terpilih</span>
-                    <span className="kbd">Delete</span>
-                  </div>
                 </div>
               </div>
               <div className="empty">
@@ -85,9 +120,9 @@ export default function HelpPage({ active }) {
                   </svg>
                 </span>
                 <h3>Masih ada pertanyaan?</h3>
-                <p>Dokumentasi lengkap mencakup istilah cetak seperti bleed, safe area, dan tanda potong beserta contoh visual.</p>
-                <button type="button" className="btn btn-secondary btn-sm" data-od-id="help-open-docs" onClick={() => studio.toastInline('Dokumentasi dibuka di tab baru.', 'info')}>
-                  Buka Dokumentasi
+                <p>Salin seluruh daftar pintasan di atas untuk ditempel ke catatan tim, atau buka Editor untuk langsung mencobanya.</p>
+                <button type="button" className="btn btn-secondary btn-sm" data-od-id="help-open-docs" onClick={copyShortcuts}>
+                  Salin Ringkasan Shortcut
                 </button>
               </div>
             </div>
@@ -97,5 +132,3 @@ export default function HelpPage({ active }) {
     </section>
   );
 }
-
-void Icon;

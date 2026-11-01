@@ -5,17 +5,17 @@
 ✓ nav settings → true
 ✓ nav help → true
 ✓ nav home → true
-✓ zoom in → "78% -> 88%"
-✓ zoom fit → "78%"
+✓ zoom in → "54% -> 64%"
+✓ zoom fit → "54%"
 ✓ toggle layer → "chip -> chip is-on"
 ✓ select pin → 1
-✓ page add → "Hal. 1 / 3 -> Hal. 4 / 4"
+✓ page add → "Halaman 1 / 3 -> Halaman 4 / 4"
 ✓ save → "Menyimpan…"
 ✓ open export dialog → true
 ✓ close export dialog → false
 ✓ confirm flow → {"open":true,"msg":"Hapus halaman aktif beserta desainnya?","closed":false}
-✓ undo → "Hal. 3 / 3"
-✓ dialogs inventory → "18: dlg-new-project,dlg-open-project,dlg-duplicate-project,dlg-reset-project,dlg-upload,dlg-replace,dlg-edit-image,dlg-paper,dlg-auto,dlg-rows,dlg-cols,dlg-new-preset,dlg-edit-preset,dlg-restore,dlg-import,dlg-backup,dlg-export,dlg-confirm"
-✓ persisted localStorage → 6
+✓ undo → "Halaman 3 / 4"
+✓ dialogs inventory → "16: dlg-new-project,dlg-open-project,dlg-duplicate-project,dlg-upload,dlg-replace,dlg-edit-image,dlg-paper,dlg-duplicate-bulk,dlg-new-preset,dlg-edit-preset,dlg-restore,dlg-import,dlg-backup,dlg-export,dlg-confirm,dlg-rename"
+✓ persisted localStorage → 16
 
 ERRORS: none

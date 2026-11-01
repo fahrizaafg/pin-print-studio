@@ -1,23 +1,13 @@
 import { useStudio } from '../state/StudioContext.jsx';
 import { Icon } from './ui/icons.jsx';
+import { PAPER_LABEL } from '../data/studioData.js';
 
 export default function Toolbar() {
   const studio = useStudio();
   const {
-    projectName, renameProject, openDialog, save, undo, redo, undoStack, redoStack,
-    toggleRail, togglePanelRight, toggles, toggleLayer,
+    projectName, openDialog, save, undo, redo, undoStack, redoStack,
+    toggleRail, togglePanelRight,
   } = studio;
-
-  const handleRename = () => {
-    const name = window.prompt('Nama proyek baru:', projectName);
-    if (name && name.trim()) renameProject(name.trim());
-  };
-
-  const quickToggles = [
-    { key: 'cut', label: 'Garis Potong', id: 'btn-quick-cut', tip: 'Garis potong' },
-    { key: 'bleed', label: 'Bleed', id: 'btn-quick-bleed', tip: 'Area bleed' },
-    { key: 'grid', label: 'Grid', id: 'btn-quick-grid', tip: 'Garis bantu' },
-  ];
 
   return (
     <>
@@ -38,11 +28,12 @@ export default function Toolbar() {
           id="btn-rename-project"
           data-od-id="btn-rename-project"
           data-tip="Ganti nama proyek"
-          onClick={handleRename}
+          onClick={() => openDialog('dlg-rename')}
         >
           {projectName}
         </button>
         <span className="pill" data-od-id="editor-draft-badge">Draf</span>
+        <span className="pill" data-od-id="paper-indicator-top" title="Kertas aktif (preview)">Kertas {(PAPER_LABEL[studio.inspector?.paper] || studio.inspector?.paper || 'A3') + (studio.inspector?.orientation === 'landscape' ? ' • Landscape' : ' • Portrait')}</span>
 
         <div className="tb-sep" />
 
@@ -74,6 +65,19 @@ export default function Toolbar() {
           >
             <Icon name="save" />
             Simpan
+          </button>
+          <button
+            className="btn btn-secondary btn-sm"
+            data-od-id="btn-reset-default"
+            data-tip="Kosongkan semua data di perangkat ini"
+            onClick={() => studio.requestConfirm({
+              message: 'Reset dan kosongkan semua? Proyek, galeri, dan layout dihapus.',
+              note: 'Preset tetap tersimpan. Tindakan ini tidak dapat dibatalkan.',
+              toast: 'Semua data dikosongkan.',
+              onConfirm: () => studio.resetToDefault(),
+            })}
+          >
+            Reset Default
           </button>
         </div>
 
@@ -114,33 +118,19 @@ export default function Toolbar() {
           <Icon name="settings" />
         </button>
         <button
-          className="btn btn-secondary btn-sm"
+          className="btn btn-primary btn-sm"
           data-od-id="btn-export"
-          data-tip="Ekspor desain"
+          data-tip="Ekspor desain (PDF/PNG)"
           onClick={() => openDialog('dlg-export')}
         >
           <Icon name="exportArrow" />
             Ekspor
         </button>
-        <button
-          className="btn btn-primary btn-sm"
-          data-od-id="btn-export-cta"
-          onClick={() => openDialog('dlg-export')}
-        >Ekspor PDF</button>
       </header>
 
       {/* ─── TOOLBAR BARIS 2: PRODUKSI ───────────────────────────── */}
       <header className="toolbar editor-toolbar-2" data-od-id="editor-toolbar-production">
         <div className="tb-group" role="group" aria-label="Produksi">
-          <button
-            className="btn btn-secondary btn-sm"
-            data-od-id="btn-upload"
-            data-tip="Unggah gambar baru"
-            onClick={() => openDialog('dlg-upload')}
-          >
-            <Icon name="upload" />
-            Upload Gambar
-          </button>
           <button
             className="btn btn-secondary btn-sm"
             data-od-id="btn-paper-setup"
@@ -150,39 +140,7 @@ export default function Toolbar() {
             <Icon name="paper" />
             Pengaturan Kertas
           </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            data-od-id="btn-auto-arrange"
-            data-tip="Susun otomatis seluruh desain"
-            onClick={() => openDialog('dlg-auto')}
-          >
-            <Icon name="gridTiles" />
-            Susun Otomatis
-          </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            id="btn-optimize"
-            data-od-id="btn-optimize"
-            data-tip="Kurangi sisa kertas dengan mengemas lebih rapat"
-            onClick={() => studio.optimizePaper()}
-          >
-            <Icon name="bolt" />
-            Optimalkan Kertas
-          </button>
-        </div>
 
-        <div className="tb-sep" />
-
-        <div className="tb-group" role="group" aria-label="Kontrol tampilan cepat">
-          {quickToggles.map((t) => (
-            <button
-              key={t.key}
-              className={`btn btn-secondary btn-sm${toggles[t.key] ? ' is-on' : ''}`}
-              data-od-id={t.id}
-              data-tip={t.tip}
-              onClick={() => toggleLayer(t.key)}
-            >{t.label}</button>
-          ))}
         </div>
 
         <div className="tb-spacer" />
@@ -196,16 +154,6 @@ export default function Toolbar() {
         >
           <Icon name="eye" />
           Pratinjau Cetak
-        </button>
-        <button
-          className="btn btn-secondary btn-sm"
-          id="btn-export-png"
-          data-od-id="btn-export-png"
-          data-tip="Ekspor sebagai gambar PNG"
-          onClick={() => studio.exportPng()}
-        >
-          <Icon name="png" />
-            Ekspor PNG
         </button>
         <button
           className="btn btn-dark btn-sm"
