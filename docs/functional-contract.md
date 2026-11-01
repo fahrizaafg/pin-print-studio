@@ -1,7 +1,8 @@
 # Kontrak Fungsional — Pin Print Studio
 
-Dokumen ini adalah **sumber kebenaran** untuk semua komponen UI. Jangan mengubah
-`src/state/StudioContext.jsx` atau `src/data/studioData.js`; kalau butuh action baru, lapor lead.
+Dokumen ini adalah **sumber kebenaran** untuk semua komponen UI. `src/data/studioData.js`
+jangan diubah tanpa lapor lead. `src/state/StudioContext.jsx` boleh diubah untuk perbaikan bug
+atau pemindahan kode yang tidak mengubah perilaku; kalau butuh action atau state baru, lapor lead.
 
 ## Aturan umum
 - Bahasa antarmuka: Indonesia. Jangan menambah dependency npm.
@@ -70,6 +71,10 @@ Lain: `undo()`, `redo()`, `notify(msg,kind)`, `toastInline(msg,kind)`
   **`OPEN_PROJECTS` dan `RECENT_PROJECTS` sudah dihapus** — pakai `projects`.
 - `src/components/ui/primitives.jsx`: `Box`, `Switch`, `CheckRow`, `Seg`, `Progress`
 - `src/components/ui/icons.jsx`: `Icon({name, stroke, className})`
+- `src/lib/pins.js`: `cutMmOf`, `paperSizePx`, `pinSizeFromCut`, `packingGrid`, `circlesCollide`,
+  `freePackingCells`, `gridPins`, `paperLabelOf`, `makePin` — geometri pin dan susun lembar.
+- `src/lib/pinGeometry.js`: `filterOf(pin)`, `clampZoom(v)`, `artPctOf(inspector)` — filter foto,
+  batas zoom, lebar area foto.
 
 ## Kelas CSS baru (disediakan lead di src/styles/09-functional.css)
 - `.is-dark-canvas` pada elemen `.canvas-scroll` → kanvas gelap saat `settings.dark`.
