@@ -883,6 +883,26 @@ const posKunciGrid = await posisiPin(pinPanelSel);
 const posBebas3 = await posisiPin(pinBebasSel);
 record('panel: ratakan ke grid tidak memindahkan pin terkunci', posKunciGrid === posPanel1, posPanel1 + ' -> ' + posKunciGrid);
 record('panel: ratakan ke grid menata pin yang tidak terkunci', posBebas3 !== posBebas2, posBebas2 + ' -> ' + posBebas3);
+
+/* Tombol gambar di panel kanan tidak boleh bilang "berhasil" untuk pin terkunci. */
+await tungguToast();
+await page.locator(pinPanelSel).first().click();
+await page.waitForTimeout(250);
+const posGambar1 = await posisiPin(pinPanelSel);
+await page.click("[data-od-id='btn-reset-pos']");
+await page.waitForTimeout(400);
+const toastReset = await txt('#toast-stack');
+const posGambar2 = await posisiPin(pinPanelSel);
+record('panel: reset posisi tidak memindahkan pin terkunci', posGambar2 === posGambar1, posGambar1 + ' -> ' + posGambar2);
+record('panel: reset posisi memberi pesan terkunci, bukan berhasil', /terkunci/i.test(toastReset) && !/direset/i.test(toastReset), toastReset.slice(0, 80));
+
+await tungguToast();
+await page.click("[data-od-id='btn-center-img']");
+await page.waitForTimeout(400);
+const toastCenter = await txt('#toast-stack');
+const posGambar3 = await posisiPin(pinPanelSel);
+record('panel: pusatkan gambar tidak memindahkan pin terkunci', posGambar3 === posGambar1, posGambar1 + ' -> ' + posGambar3);
+record('panel: pusatkan gambar memberi pesan terkunci', /terkunci/i.test(toastCenter), toastCenter.slice(0, 80));
 await page.screenshot({ path: path.join(OUT, 'e2e-60-kunci-panel.png') });
 
 /* Setelah kunci dibuka, kolom posisi bekerja normal lagi. */

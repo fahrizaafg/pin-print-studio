@@ -1120,8 +1120,12 @@ export function StudioProvider({ children }) {
           return;
         }
         const current = stateRef.current;
-        const { w: sheetW, h: sheetH } = paperSizePx(current.inspector);
         const pin = current.pages.flatMap((p) => p.pins).find((p) => p.id === current.selectedPinId);
+        if (pin?.locked) {
+          toast('Desain terkunci — buka kunci untuk memusatkan gambar.', 'err');
+          return;
+        }
+        const { w: sheetW, h: sheetH } = paperSizePx(current.inspector);
         const size = pin?.size || 150;
         const cx = Math.round(sheetW / 2 - size / 2);
         const cy = Math.round(sheetH / 2 - size / 2);
@@ -1135,6 +1139,12 @@ export function StudioProvider({ children }) {
       resetSelectedImage: () => {
         if (!state.selectedPinId) {
           toast('Pilih desain pada lembar terlebih dahulu.', 'err');
+          return;
+        }
+        const current = stateRef.current;
+        const pin = current.pages.flatMap((p) => p.pins).find((p) => p.id === current.selectedPinId);
+        if (pin?.locked) {
+          toast('Desain terkunci — buka kunci untuk mereset posisi.', 'err');
           return;
         }
         pushHistory(state);
