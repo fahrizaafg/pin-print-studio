@@ -1,6 +1,29 @@
 /* 09 — kelas fungsional tambahan */
 .is-hidden { display: none !important; }
-.canvas-scroll.is-dark-canvas { background-color: #1c1c1e; background-image: linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px); }
+
+/* Latar area kanvas: meja kerja (tiket 04). Menimpa latar di 06-canvas.css.
+   Titik halus 20px + dua gradasi sudut; kertas tetap milik 06 (.sheet) dan
+   tidak disentuh, jadi hasil ekspor PNG/PDF tidak berubah. */
+.canvas-scroll {
+  background-color: #ebe9e4;
+  background-image:
+    radial-gradient(circle, rgba(88, 80, 68, 0.17) 1px, transparent 1.6px),
+    radial-gradient(900px 480px at 8% -10%, rgba(255, 255, 255, 0.9), transparent 62%),
+    radial-gradient(760px 420px at 96% 110%, rgba(198, 178, 146, 0.34), transparent 60%);
+  background-size: 20px 20px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
+
+/* Mode gelap: arang hangat lembut (#2b2a28), bukan hitam pekat. */
+.canvas-scroll.is-dark-canvas {
+  background-color: #2b2a28;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.09) 1px, transparent 1.6px),
+    radial-gradient(900px 480px at 10% -10%, rgba(255, 255, 255, 0.05), transparent 62%),
+    radial-gradient(760px 420px at 95% 110%, rgba(255, 214, 150, 0.05), transparent 60%);
+  background-size: 20px 20px, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat;
+}
 .pin-art.is-cropped { box-shadow: 0 0 0 2px var(--accent, #0071e3) inset; }
 .pin-art img, .asset-thumb img, .gcard-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rail-scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 85; }

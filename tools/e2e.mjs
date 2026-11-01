@@ -692,6 +692,80 @@ record(
   posPnlBuka1 + ' -> ' + posPnlBuka2 + ' (saklar=' + (await saklarMenyala()) + ')',
 );
 
+/* ══ Jalur J: latar kanvas seperti meja kerja (tiket 04) ══ */
+/* Warna dibaca dari gaya terhitung, bukan dari nama kelas, supaya salah warna
+   akibat perubahan CSS ketahuan. "Kanvas gelap" aktif secara bawaan. */
+const bacaKanvas = () => page.evaluate(() => {
+  const scroll = document.querySelector('#canvas-scroll');
+  const kertas = document.querySelector('#page-editor .sheet');
+  if (!scroll) return null;
+  const cs = getComputedStyle(scroll);
+  const rgb = (cs.backgroundColor.match(/[\d.]+/g) || []).map(Number);
+  return {
+    warna: cs.backgroundColor,
+    rata: rgb.length >= 3 ? Math.round((rgb[0] + rgb[1] + rgb[2]) / 3) : null,
+    hangat: rgb.length >= 3 ? rgb[0] - rgb[2] : null,
+    pola: (cs.backgroundImage.match(/radial-gradient/g) || []).length,
+    kertas: kertas ? getComputedStyle(kertas).backgroundColor : '',
+  };
+});
+
+/* Tab pengaturan bisa tertinggal di "penyimpanan" dari tahap sebelumnya. */
+const bukaTabTampilan = async () => {
+  await nav('settings');
+  await page.click("[data-tab='tampilan']");
+  await page.waitForTimeout(250);
+};
+await nav('editor');
+const darkAwal = await page.locator('#canvas-scroll').evaluate((el) => el.classList.contains('is-dark-canvas'));
+if (darkAwal) { await bukaTabTampilan(); await page.click("[data-od-id='set-dark']"); await page.waitForTimeout(300); }
+await nav('editor');
+const kanvasTerang = await bacaKanvas();
+record(
+  'latar: mode terang bukan hitam pekat (abu hangat)',
+  Boolean(kanvasTerang) && kanvasTerang.rata >= 180 && kanvasTerang.hangat >= 0,
+  kanvasTerang ? kanvasTerang.warna + ' · rata=' + kanvasTerang.rata + ' · hangat=' + kanvasTerang.hangat : 'kanvas tak ditemukan',
+);
+record(
+  'latar: mode terang berpola titik + gradasi, bukan bidang polos',
+  Boolean(kanvasTerang) && kanvasTerang.pola >= 3,
+  'lapis gradien=' + (kanvasTerang ? kanvasTerang.pola : '-'),
+);
+record(
+  'latar: kertas tetap putih di mode terang',
+  Boolean(kanvasTerang) && kanvasTerang.kertas === 'rgb(255, 255, 255)',
+  kanvasTerang ? kanvasTerang.kertas : '-',
+);
+await page.screenshot({ path: path.join(OUT, 'e2e-70-latar-terang.png') });
+
+/* Mode gelap: arang lembut, bukan hitam murni; kertas tetap putih. */
+await tungguToast();
+await bukaTabTampilan();
+await page.click("[data-od-id='set-dark']");
+await page.waitForTimeout(300);
+await nav('editor');
+const kanvasGelap = await bacaKanvas();
+const darkAkhir = await page.locator('#canvas-scroll').evaluate((el) => el.classList.contains('is-dark-canvas'));
+record('latar: setelan "Kanvas gelap" tetap berfungsi', darkAkhir, 'is-dark-canvas=' + darkAkhir);
+record(
+  'latar: mode gelap memakai arang lembut, bukan hitam pekat',
+  Boolean(kanvasGelap) && kanvasGelap.rata >= 34 && kanvasGelap.rata <= 90,
+  kanvasGelap ? kanvasGelap.warna + ' · rata=' + kanvasGelap.rata : 'kanvas tak ditemukan',
+);
+record(
+  'latar: mode gelap tetap berpola titik halus',
+  Boolean(kanvasGelap) && kanvasGelap.pola >= 3,
+  'lapis gradien=' + (kanvasGelap ? kanvasGelap.pola : '-'),
+);
+record(
+  'latar: kertas tetap putih di mode gelap',
+  Boolean(kanvasGelap) && kanvasGelap.kertas === 'rgb(255, 255, 255)',
+  kanvasGelap ? kanvasGelap.kertas : '-',
+);
+await page.screenshot({ path: path.join(OUT, 'e2e-71-latar-gelap.png') });
+/* Kembalikan ke setelan bawaan (gelap aktif) supaya tahap lain tidak terpengaruh. */
+if (!darkAkhir) { await bukaTabTampilan(); await page.click("[data-od-id='set-dark']"); await page.waitForTimeout(250); await nav('editor'); }
+
 record('nol pageerror / console error E2E', problems.length === 0, problems.slice(0, 4).join(' | '));
 
 await browser.close();
