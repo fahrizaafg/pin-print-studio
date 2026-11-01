@@ -250,6 +250,23 @@ if (bakPath) {
   }
   record('restore backup membuka editor E2E', (await isActive('#page-editor')) && (await txt('#rail-project-name')).includes('E2E'), await txt('#rail-project-name'));
 
+  /* Restore harus memulihkan persis isi backup: jumlah sama, tanpa id kembar. */
+  const bakJson = JSON.parse(fs.readFileSync(bakPath, 'utf8'));
+  const restored = await page.evaluate(() => {
+    const read = (k) => { try { return JSON.parse(localStorage.getItem('pin-studio:' + k) || '[]'); } catch { return []; } };
+    const dup = (list) => list.map((x) => x.id).filter((id, i, all) => all.indexOf(id) !== i);
+    const assets = read('assets'); const gallery = read('gallery');
+    return { assets, gallery, dup: [...dup(assets), ...dup(gallery)] };
+  });
+  const bakAssets = (bakJson.assets || []).length;
+  const bakGallery = (bakJson.gallery || []).length;
+  record(
+    'restore memulihkan koleksi persis seperti backup',
+    restored.dup.length === 0 && restored.assets.length === bakAssets && restored.gallery.length === bakGallery,
+    'aset ' + restored.assets.length + '/' + bakAssets + ', galeri ' + restored.gallery.length + '/' + bakGallery
+      + (restored.dup.length ? ', kembar: ' + restored.dup.slice(0, 4).join(', ') : ''),
+  );
+
   /* Uji file rusak ditolak tanpa crash */
   await nav('settings');
   await page.waitForTimeout(300);

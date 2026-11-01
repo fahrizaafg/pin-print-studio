@@ -403,6 +403,13 @@ function reducer(state, action) {
     /* ── gallery ── */
     case 'addGalleryCards':
       return { ...state, galleryCards: [...action.cards, ...state.galleryCards] };
+    /* Restore memulihkan, bukan menumpuk: koleksi diganti isi backup. */
+    case 'replaceCollections':
+      return {
+        ...state,
+        assets: Array.isArray(action.assets) ? action.assets : state.assets,
+        galleryCards: Array.isArray(action.galleryCards) ? action.galleryCards : state.galleryCards,
+      };
     case 'removeGalleryCard':
       return { ...state, galleryCards: state.galleryCards.filter((c) => c.id !== action.id) };
     case 'duplicateGalleryCard': {
@@ -1562,11 +1569,8 @@ export function StudioProvider({ children }) {
         dispatch({ type: 'replacePages', pages: payload.pages, selectedPinId: null });
         if (payload.inspector) dispatch({ type: 'setInspector', patch: payload.inspector });
         if (payload.project) dispatch({ type: 'renameProject', name: payload.project });
-        if (Array.isArray(payload.assets) && payload.assets.length) {
-          dispatch({ type: 'addAssets', assets: payload.assets });
-        }
-        if (Array.isArray(payload.gallery) && payload.gallery.length) {
-          dispatch({ type: 'addGalleryCards', cards: payload.gallery });
+        if (Array.isArray(payload.assets) || Array.isArray(payload.gallery)) {
+          dispatch({ type: 'replaceCollections', assets: payload.assets, galleryCards: payload.gallery });
         }
         if (payload.settings) {
           dispatch({ type: 'setSettings', patch: payload.settings });
