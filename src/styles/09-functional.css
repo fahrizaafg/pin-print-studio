@@ -2,15 +2,15 @@
 .is-hidden { display: none !important; }
 
 /* Latar area kanvas: meja kerja (tiket 04). Menimpa latar di 06-canvas.css.
-   Titik halus 20px + dua gradasi sudut; kertas tetap milik 06 (.sheet) dan
-   tidak disentuh, jadi hasil ekspor PNG/PDF tidak berubah. */
+   Titik bulat 24px + dua gradasi sudut; kertas tetap milik 06 (.sheet) dan
+   tidak disentuh di mode terang, jadi hasil ekspor PNG/PDF tidak berubah. */
 .canvas-scroll {
   background-color: #ebe9e4;
   background-image:
-    radial-gradient(circle, rgba(88, 80, 68, 0.17) 1px, transparent 1.6px),
-    radial-gradient(900px 480px at 8% -10%, rgba(255, 255, 255, 0.9), transparent 62%),
+    radial-gradient(circle, rgba(88, 80, 68, 0.22) 0.9px, transparent 2.1px),
+    radial-gradient(900px 480px at 6% -16%, rgba(255, 255, 255, 0.4), transparent 62%),
     radial-gradient(760px 420px at 96% 110%, rgba(198, 178, 146, 0.34), transparent 60%);
-  background-size: 20px 20px, auto, auto;
+  background-size: 24px 24px, auto, auto;
   background-repeat: repeat, no-repeat, no-repeat;
 }
 
@@ -18,12 +18,22 @@
 .canvas-scroll.is-dark-canvas {
   background-color: #2b2a28;
   background-image:
-    radial-gradient(circle, rgba(255, 255, 255, 0.09) 1px, transparent 1.6px),
-    radial-gradient(900px 480px at 10% -10%, rgba(255, 255, 255, 0.05), transparent 62%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.12) 0.9px, transparent 2.1px),
+    radial-gradient(900px 480px at 10% -10%, rgba(255, 255, 255, 0.04), transparent 62%),
     radial-gradient(760px 420px at 95% 110%, rgba(255, 214, 150, 0.05), transparent 60%);
-  background-size: 20px 20px, auto, auto;
+  background-size: 24px 24px, auto, auto;
   background-repeat: repeat, no-repeat, no-repeat;
 }
+
+/* Mode gelap saja: kertas butuh bayangan + tepi tipis terang supaya terlihat
+   duduk di meja, bukan ditempel. Mode terang tetap memakai bayangan 06. */
+.canvas-scroll.is-dark-canvas .sheet {
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.62),
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 0 0 1.5px rgba(255, 255, 255, 0.12);
+}
+
 .pin-art.is-cropped { box-shadow: 0 0 0 2px var(--accent, #0071e3) inset; }
 .pin-art img, .asset-thumb img, .gcard-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rail-scrim { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 85; }
